@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 chrono = "0.4.19"
 num-traits = "0.2.14"
+serde = { version = "1.0.136", features = ["derive"] }
+serde_yaml = "0.8.23"
 serenity = "0.10.10"
 sha3 = "0.10.0"
 tokio = { version = "1.16.1", features = ["full"] }
