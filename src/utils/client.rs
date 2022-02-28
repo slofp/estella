@@ -25,6 +25,10 @@ impl Components {
 		self.cloned_shardmanager = Some(cloned_shardmanager);
 	}
 
+	pub fn get_config(&self) -> &ConfigData {
+		self.config.as_ref().unwrap()
+	}
+
 	pub fn get_sm(&self) -> &Arc<Mutex<ShardManager>> {
 		self.cloned_shardmanager.as_ref().unwrap()
 	}

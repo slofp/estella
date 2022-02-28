@@ -1,9 +1,14 @@
-use log::info;
-use serenity::client::Context;
+use std::sync::Arc;
+use log::{debug, error, info};
+use serenity::builder::{CreateApplicationCommand, CreateApplicationCommandOption, CreateApplicationCommands};
+use serenity::client::{Cache, Context};
+use serenity::http::Http;
 use serenity::model::channel::Message;
+use serenity::model::id::{CommandId, GuildId};
+use serenity::model::interactions::application_command::ApplicationCommandOptionType;
 use sqlx::mysql::MySqlPoolOptions;
 use sqlx::Row;
-use crate::STATIC_COMPONENTS;
+use crate::{commands, STATIC_COMPONENTS};
 
 #[derive(sqlx::FromRow)]
 struct UserData {
@@ -11,51 +16,149 @@ struct UserData {
 }
 
 pub async fn execute(ctx: Context, message: Message) {
-	println!(
-		"user: {}#{:04}\nChannel: {}\nkind: {:?}\ntext: {}\ncreate date: {}",
-		message.author.name,
-		message.author.discriminator,
-		if message.is_private() { "DM".to_string() } else { message.channel_id.name(ctx.cache).await.unwrap_or_else(|| "None".to_string()) },
-		message.kind,
-		message.content,
-		message.timestamp
-	);
+	message_log(&message, ctx.cache.clone()).await;
 
-	if *message.author.id.as_u64() != 0 /*owner userid*/ {
+	let lsc = STATIC_COMPONENTS.lock().await;
+	let config = lsc.get_config();
+	if *message.author.id.as_u64() != *config.get_owner_id() /*owner userid*/ {
 		return;
 	}
 	if message.content == "estella.logout" {
-		println!("logging out...");
-		let lsc = STATIC_COMPONENTS.lock().await;
-		let mut locked_shardmanager = lsc.get_sm().lock().await;
-		locked_shardmanager.shutdown_all().await;
-
-		info!("Exiting...");
-
-		while locked_shardmanager.shards_instantiated().await.len() != 0 { }
-		//ctx.shard.shutdown_clean();
-
-		//tokio::time::sleep(tokio::time::Duration::new(5, 0)).await;
-		std::process::exit(0);
+		info!("logging out...");
+		exit().await;
 	}
 	else if message.content.starts_with("estella.test") {
-		println!("estella.test execute!");
-		//let t = message.content.replace("estella.test", "").replace(" ", "");
-		let lsc = STATIC_COMPONENTS.lock().await;
-		let mysql_client = lsc.get_sql();
+		info!("estella.test execute!");
+		test().await;
+	}
+	else if message.content.starts_with("estella.rep") {
+		ping(&ctx, message).await;
+	}
+	else if message.content.starts_with("estella.create") {
+		create(message, &ctx.http).await;
+	}
+	else if message.content.starts_with("estella.delete") {
+		delete(message, &ctx.http).await;
+	}
+}
 
-		let res = sqlx::query("SELECT COUNT(*) as cnt FROM userdata")
-			.fetch_one(mysql_client).await;
+async fn message_log(message: &Message, cache: Arc<Cache>) {
+	info!("user: {}#{:04}\nChannel: {}\nkind: {:?}\ntext: {}\ncreate date: {}",
+		message.author.name,
+		message.author.discriminator,
+		if message.is_private() { "DM".to_string() } else { message.channel_id.name(cache).await.unwrap_or_else(|| "None".to_string()) },
+		message.kind,
+		message.content,
+		message.timestamp);
+}
 
-		if let Ok(res) = res {
-			let cnt: i32 = res.get("cnt");
-			println!("get value: {}", cnt);
-			/*for row in res {
-				println!("get value: {}", row.uid);
-			}*/
-		}
-		else if let Err(res) = res {
-			println!("{:?}", res);
+async fn exit() {
+	let lsc = STATIC_COMPONENTS.lock().await;
+	let mut locked_shardmanager = lsc.get_sm().lock().await;
+	locked_shardmanager.shutdown_all().await;
+
+	info!("Exiting...");
+
+	while locked_shardmanager.shards_instantiated().await.len() != 0 { }
+	info!("Bot logged out.");
+
+	lsc.get_sql().close().await;
+	info!("Database closed.");
+
+	std::process::exit(0);
+}
+
+async fn test() {
+	//let t = message.content.replace("estella.test", "").replace(" ", "");
+	let lsc = STATIC_COMPONENTS.lock().await;
+	let mysql_client = lsc.get_sql();
+
+	let res = sqlx::query("SELECT COUNT(*) as cnt FROM userdata")
+		.fetch_one(mysql_client).await;
+
+	if let Ok(res) = res {
+		let cnt: i32 = res.get("cnt");
+		info!("get value: {}", cnt);
+		/*for row in res {
+			println!("get value: {}", row.uid);
+		}*/
+	}
+	else if let Err(res) = res {
+		info!("{:?}", res);
+	}
+}
+
+async fn ping(ctx: &Context, message: Message) {
+	match message.reply_ping(
+		ctx,
+		"Wait pls..."
+	).await {
+		Ok(mut rep_message) => {
+			let rep_time = rep_message.timestamp.timestamp_subsec_millis();
+			let ping = rep_time - message.timestamp.timestamp_subsec_millis();
+
+			rep_message.edit(
+				ctx,
+				move |m| m.content(
+					format!("{}ms", ping)
+				)
+			).await;
+		},
+		Err(error) => {
+			error!("{}", error);
 		}
 	}
+}
+
+async fn create(message: Message, http: &Arc<Http>) {
+	match create_command(message.guild_id.unwrap(), http).await {
+		Ok(command) => {
+			message.channel_id.send_message(
+				http,
+				|m| m.content(format!("success command create!\ncommand id: {}", command))
+			).await;
+		},
+		Err(error) => {
+			message.channel_id.send_message(http, |m| m.content(format!("create error: {}", error))).await;
+		}
+	};
+}
+
+async fn create_command(guild: GuildId, http: &Arc<Http>) -> Result<CommandId, serenity::Error> {
+	let app_commands =
+		guild.set_application_commands(http, commands::app_commands_build).await;
+
+	debug!("adding response: {:#?}", app_commands);
+	return match app_commands {
+		Ok(app_commands) => {
+			info!("success add command!");
+			for command in &app_commands {
+				info!("app id: {}", command.application_id);
+				info!("command id: {}", command.id);
+			}
+			Ok(app_commands[0].id)
+		},
+		Err(error) => Err(error)
+	}
+}
+
+async fn delete(message: Message, http: &Arc<Http>) {
+	let rep_message = message.content.replace("estella.delete", "").replace(" ", "");
+	message.channel_id.send_message(http, |m| m.content(format!("deleting: {}", rep_message))).await;
+
+	match message.guild_id.unwrap().delete_application_command(
+		http,
+		CommandId(
+			rep_message
+				.parse()
+				.expect("Coundnt parse id")
+		)
+	).await {
+		Ok(_) => {
+			message.channel_id.send_message(http, |m| m.content("success command delete!")).await;
+		},
+		Err(error) => {
+			message.channel_id.send_message(http, |m| m.content(format!("delete error: {}", error))).await;
+		}
+	};
 }

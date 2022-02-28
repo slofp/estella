@@ -3,6 +3,8 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize)]
 pub struct ConfigData {
 	token: String,
+	bot_id: u64,
+	owner_id: u64,
 
 	db_url: String,
 	db_username: String,
@@ -13,6 +15,14 @@ pub struct ConfigData {
 impl ConfigData {
 	pub fn get_token(&self) -> &String {
 		&self.token
+	}
+
+	pub fn get_bot_id(&self) -> &u64 {
+		&self.bot_id
+	}
+
+	pub fn get_owner_id(&self) -> &u64 {
+		&self.owner_id
 	}
 
 	pub fn get_db_url(&self) -> String {

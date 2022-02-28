@@ -2,6 +2,7 @@ mod configs;
 mod utils;
 mod events;
 mod tables;
+mod commands;
 
 use std::fs;
 use std::path::Path;
@@ -60,7 +61,7 @@ async fn main() {
 
     STATIC_COMPONENTS.lock().await.sets(config, mysql_client, client.shard_manager.clone());
 
-    start_signal(client.shard_manager.clone());
+    start_signal();
 
     if let Err(error) = client.start().await {
         error!("Stop Error: {}", error);
@@ -110,10 +111,11 @@ fn init_logger(is_debug: bool) -> Result<(), fern::InitError> {
     }
 
     let log_path = get_log_path(false);
+    let format_cloned_id_debug = is_debug.clone();
     fern::Dispatch::new()
         .format(move |out, message, record| {
             let mut code = "".to_string();
-            if is_debug {
+            if format_cloned_id_debug {
                 if let Some(filepath) = record.file() {
                     if let Some(codeline) = record.line() {
                         code = format!("file: {}:{}", filepath, codeline);
@@ -121,7 +123,7 @@ fn init_logger(is_debug: bool) -> Result<(), fern::InitError> {
                 }
             }
 
-            out.finish(
+            return out.finish(
                 format_args!(
                     "{} [{}] [{}]: {} {}",
                     chrono::Local::now().format("[%Y-%m-%d %H:%M:%S]"),
@@ -130,9 +132,9 @@ fn init_logger(is_debug: bool) -> Result<(), fern::InitError> {
                     message,
                     code
                 )
-            )
+            );
         })
-        .level(log::LevelFilter::Debug)
+        .level(if is_debug { log::LevelFilter::Debug } else { log::LevelFilter::Info })
         .chain(std::io::stdout())
         .chain(fern::log_file(Path::new(log_path.as_str()))?)
         .apply()?;
@@ -147,11 +149,12 @@ async fn create_client(config: &ConfigData) -> Client {
         .intents(GatewayIntents::all())
         .framework(framework)
         .event_handler(Router)
+        .application_id(*config.get_bot_id())
         .await
         .expect("Erred at client")
 }
 
-fn start_signal(cloned_shardmanager: Arc<Mutex<ShardManager>>) -> JoinHandle<()> {
+fn start_signal() -> JoinHandle<()> {
     tokio::spawn(
         async move {
             if let Err(_) = tokio::signal::ctrl_c().await {
@@ -160,12 +163,17 @@ fn start_signal(cloned_shardmanager: Arc<Mutex<ShardManager>>) -> JoinHandle<()>
             }
 
             debug!("Ctrl+C Received!");
-            let mut locked_shardmanager = cloned_shardmanager.lock().await;
+            let lsc = STATIC_COMPONENTS.lock().await;
+            let mut locked_shardmanager = lsc.get_sm().lock().await;
             locked_shardmanager.shutdown_all().await;
 
             info!("Exiting...");
 
             while locked_shardmanager.shards_instantiated().await.len() != 0 { }
+            info!("Bot logged out.");
+
+            lsc.get_sql().close().await;
+            info!("Database closed.");
         }
     )
 }
