@@ -161,17 +161,23 @@ fn start_signal() -> JoinHandle<()> {
             }
 
             debug!("Ctrl+C Received!");
-            let lsc = STATIC_COMPONENTS.lock().await;
-            let mut locked_shardmanager = lsc.get_sm().lock().await;
-            locked_shardmanager.shutdown_all().await;
-
-            info!("Exiting...");
-
-            while locked_shardmanager.shards_instantiated().await.len() != 0 { }
-            info!("Bot logged out.");
-
-            lsc.get_sql().close().await;
-            info!("Database closed.");
+            exit(false).await;
         }
     )
+}
+
+pub async fn exit(at_exit: bool) {
+    let lsc = STATIC_COMPONENTS.lock().await;
+    let mut locked_shardmanager = lsc.get_sm().lock().await;
+    locked_shardmanager.shutdown_all().await;
+
+    info!("Exiting...");
+
+    while locked_shardmanager.shards_instantiated().await.len() != 0 { }
+    info!("Bot logged out.");
+
+    lsc.get_sql().close().await;
+    info!("Database closed.");
+
+    if at_exit { std::process::exit(0); }
 }

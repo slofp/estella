@@ -5,7 +5,7 @@ use serenity::http::Http;
 use serenity::model::channel::Message;
 use serenity::model::id::{CommandId, GuildId};
 use sqlx::Row;
-use crate::{commands, STATIC_COMPONENTS};
+use crate::{commands, exit, STATIC_COMPONENTS};
 
 /*#[derive(sqlx::FromRow)]
 struct UserData {
@@ -20,12 +20,13 @@ pub async fn execute(ctx: Context, message: Message) {
 	if *message.author.id.as_u64() != *config.get_owner_id() /*owner userid*/ {
 		return;
 	}
+	std::mem::drop(lsc);
+
 	if message.content == "estella.logout" {
 		info!("logging out...");
-		exit().await;
+		exit(true).await;
 	}
 	else if message.content.starts_with("estella.test") {
-		info!("estella.test execute!");
 		test().await;
 	}
 	else if message.content.starts_with("estella.rep") {
@@ -49,29 +50,14 @@ async fn message_log(message: &Message, cache: Arc<Cache>) {
 		message.timestamp);
 }
 
-async fn exit() {
-	let lsc = STATIC_COMPONENTS.lock().await;
-	let mut locked_shardmanager = lsc.get_sm().lock().await;
-	locked_shardmanager.shutdown_all().await;
-
-	info!("Exiting...");
-
-	while locked_shardmanager.shards_instantiated().await.len() != 0 { }
-	info!("Bot logged out.");
-
-	lsc.get_sql().close().await;
-	info!("Database closed.");
-
-	std::process::exit(0);
-}
-
 async fn test() {
-	//let t = message.content.replace("estella.test", "").replace(" ", "");
 	let lsc = STATIC_COMPONENTS.lock().await;
 	let mysql_client = lsc.get_sql();
 
 	let res = sqlx::query("SELECT COUNT(*) as cnt FROM userdata")
 		.fetch_one(mysql_client).await;
+
+	std::mem::drop(lsc);
 
 	if let Ok(res) = res {
 		let cnt: i32 = res.get("cnt");
