@@ -6,15 +6,13 @@ mod commands;
 
 use std::fs;
 use std::path::Path;
-use std::sync::Arc;
 use log::{debug, error, info};
 use once_cell::sync::Lazy;
-use serenity::{Client, FutureExt};
-use serenity::client::bridge::gateway::{GatewayIntents, ShardManager};
+use serenity::Client;
+use serenity::client::bridge::gateway::{GatewayIntents};
 use serenity::framework::StandardFramework;
-use sqlx::{MySql, Pool};
 use sqlx::mysql::MySqlPoolOptions;
-use tokio::sync::{Mutex, MutexGuard};
+use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use crate::configs::ConfigData;
 use crate::events::route::Router;
@@ -26,7 +24,7 @@ pub static STATIC_COMPONENTS: Lazy<Mutex<Components>> = Lazy::new(|| Mutex::new(
 
 #[tokio::main]
 async fn main() {
-    let mut is_debug = debug_arg_check();
+    let is_debug = debug_arg_check();
 
     if let Err(error) = init_logger(is_debug) {
         println!("Init Error: {}", error);

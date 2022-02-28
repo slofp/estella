@@ -1,12 +1,9 @@
 use std::sync::Arc;
 use log::{debug, error, info};
-use serenity::builder::{CreateApplicationCommand, CreateApplicationCommandOption, CreateApplicationCommands};
 use serenity::client::{Cache, Context};
 use serenity::http::Http;
 use serenity::model::channel::Message;
 use serenity::model::id::{CommandId, GuildId};
-use serenity::model::interactions::application_command::ApplicationCommandOptionType;
-use sqlx::mysql::MySqlPoolOptions;
 use sqlx::Row;
 use crate::{commands, STATIC_COMPONENTS};
 
