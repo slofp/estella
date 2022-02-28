@@ -1,7 +1,6 @@
 use log::{error, info};
 use serenity::async_trait;
 use serenity::client::{Context, EventHandler};
-use serenity::http::CacheHttp;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::guild::Member;

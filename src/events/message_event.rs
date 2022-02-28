@@ -7,10 +7,10 @@ use serenity::model::id::{CommandId, GuildId};
 use sqlx::Row;
 use crate::{commands, STATIC_COMPONENTS};
 
-#[derive(sqlx::FromRow)]
+/*#[derive(sqlx::FromRow)]
 struct UserData {
 	uid: u64
-}
+}*/
 
 pub async fn execute(ctx: Context, message: Message) {
 	message_log(&message, ctx.cache.clone()).await;
@@ -94,12 +94,14 @@ async fn ping(ctx: &Context, message: Message) {
 			let rep_time = rep_message.timestamp.timestamp_subsec_millis();
 			let ping = rep_time - message.timestamp.timestamp_subsec_millis();
 
-			rep_message.edit(
+			if let Err(error) = rep_message.edit(
 				ctx,
 				move |m| m.content(
 					format!("{}ms", ping)
 				)
-			).await;
+			).await {
+				error!("{}", error);
+			}
 		},
 		Err(error) => {
 			error!("{}", error);
@@ -110,13 +112,21 @@ async fn ping(ctx: &Context, message: Message) {
 async fn create(message: Message, http: &Arc<Http>) {
 	match create_command(message.guild_id.unwrap(), http).await {
 		Ok(command) => {
-			message.channel_id.send_message(
+			if let Err(error) = message.channel_id.send_message(
 				http,
 				|m| m.content(format!("success command create!\ncommand id: {}", command))
-			).await;
+			).await {
+				error!("{}", error);
+			}
 		},
 		Err(error) => {
-			message.channel_id.send_message(http, |m| m.content(format!("create error: {}", error))).await;
+			if let Err(error2) = message.channel_id.send_message(
+				http,
+				|m| m.content(format!("create error: {}", error))
+			).await {
+				error!("{}", error);
+				error!("{}", error2);
+			}
 		}
 	};
 }
@@ -141,7 +151,12 @@ async fn create_command(guild: GuildId, http: &Arc<Http>) -> Result<CommandId, s
 
 async fn delete(message: Message, http: &Arc<Http>) {
 	let rep_message = message.content.replace("estella.delete", "").replace(" ", "");
-	message.channel_id.send_message(http, |m| m.content(format!("deleting: {}", rep_message))).await;
+	if let Err(error) = message.channel_id.send_message(
+		http,
+		|m| m.content(format!("deleting: {}", rep_message))
+	).await {
+		error!("{}", error);
+	}
 
 	match message.guild_id.unwrap().delete_application_command(
 		http,
@@ -152,10 +167,21 @@ async fn delete(message: Message, http: &Arc<Http>) {
 		)
 	).await {
 		Ok(_) => {
-			message.channel_id.send_message(http, |m| m.content("success command delete!")).await;
+			if let Err(error) = message.channel_id.send_message(
+				http,
+				|m| m.content("success command delete!")
+			).await {
+				error!("{}", error);
+			}
 		},
 		Err(error) => {
-			message.channel_id.send_message(http, |m| m.content(format!("delete error: {}", error))).await;
+			if let Err(error2) = message.channel_id.send_message(
+				http,
+				|m| m.content(format!("delete error: {}", error))
+			).await {
+				error!("{}", error);
+				error!("{}", error2);
+			}
 		}
 	};
 }
