@@ -7,7 +7,7 @@ pub async fn execute(ctx: Context, data_about_bot: Ready) {
 	for guild in data_about_bot.guilds {
 		let guildid = guild.id();
 		debug!("id: {}", guildid.as_u64() );
-		if *guildid.as_u64() == 0 {
+		if *guildid.as_u64() == 0 /* my guild id */ {
 			if let Ok(members) = guildid.members(&ctx.http, None, None).await {
 				for member in members {
 					if member.user.bot {

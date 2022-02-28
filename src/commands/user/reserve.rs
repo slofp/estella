@@ -4,14 +4,16 @@ use serenity::model::interactions::application_command::ApplicationCommandOption
 /*
 Paramsは値名→説明→型定義で構成されています
 */
-const PARAMS: [(&str, &str, ApplicationCommandOptionType); 1] = [
-	("val", "estella.test.ok value", ApplicationCommandOptionType::String)
+const PARAMS: [(&str, &str, ApplicationCommandOptionType); 3] = [
+	("user_id", "ユーザーID", ApplicationCommandOptionType::String),
+	("name", "登録名", ApplicationCommandOptionType::String),
+	("reason", "登録理由", ApplicationCommandOptionType::String),
 ];
 
 pub fn command_build(option: &mut CreateApplicationCommandOption) -> &mut CreateApplicationCommandOption {
 	option
-		.name("ok")
-		.description("estella.test.ok")
+		.name("reserve")
+		.description("ユーザー登録を予約します")
 		.kind(ApplicationCommandOptionType::SubCommand);
 
 	for (name, desc, option_type) in &PARAMS {
