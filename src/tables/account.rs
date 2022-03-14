@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 
+#[derive(sqlx::FromRow)]
 pub struct Main {
 	uid: u64,
 	name: String,
@@ -9,6 +10,7 @@ pub struct Main {
 	is_leaved: bool
 }
 
+#[derive(sqlx::FromRow)]
 pub struct Sub {
 	uid: u64,
 	name: String,
@@ -18,6 +20,7 @@ pub struct Sub {
 	second_cert: Option<u64>
 }
 
+#[derive(sqlx::FromRow)]
 pub struct Pending {
 	uid: u64,
 	end_voting: DateTime<Utc>
