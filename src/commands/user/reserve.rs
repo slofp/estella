@@ -1,5 +1,7 @@
+use log::info;
 use serenity::builder::CreateApplicationCommandOption;
-use serenity::model::interactions::application_command::ApplicationCommandOptionType;
+use serenity::client::Context;
+use serenity::model::interactions::application_command::{ApplicationCommandInteractionDataOption, ApplicationCommandInteraction, ApplicationCommandOptionType};
 
 /*
 Paramsは値名→説明→型定義で構成されています
@@ -9,6 +11,12 @@ const PARAMS: [(&str, &str, ApplicationCommandOptionType); 3] = [
 	("name", "登録名", ApplicationCommandOptionType::String),
 	("reason", "登録理由", ApplicationCommandOptionType::String),
 ];
+
+pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, command_args: &ApplicationCommandInteractionDataOption) {
+	for b in &command_args.options {
+		info!("option data: {} [{:?}]", b.name, b.value);
+	}
+}
 
 pub fn command_build(option: &mut CreateApplicationCommandOption) -> &mut CreateApplicationCommandOption {
 	option

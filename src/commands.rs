@@ -19,6 +19,7 @@ async fn root_commands_route(ctx: Context, command: ApplicationCommandInteractio
 	let sub_command: &ApplicationCommandInteractionDataOption = &command.data.options[0];
 	match sub_command.name.as_str() {
 		"ping" => ping::execute(ctx, command).await,
+		"user" => user::commands_route(ctx, &command, sub_command).await,
 		_ => error!("No Exist Command!")
 	};
 }
