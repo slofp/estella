@@ -77,6 +77,100 @@ pub async fn insert_pending_account(value: &account::Pending, client: &Pool<MySq
 
 /// update func
 
+pub async fn update_main_account(value: &account::Main, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("update main_account set is_leaved = $1 where uid = $2")
+		.bind(&value.is_leaved)
+		.bind(&value.uid)
+		.fetch_one(client).await?;
+
+	Ok(())
+}
+
+// 今の所使用しない
+/*pub async fn update_sub_account(value: &account::Sub, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("update sub_account set ")
+		.bind(&value.uid)
+		.bind(&value.name)
+		.bind(&value.join_date)
+		.bind(&value.main_uid)
+		.bind(&value.first_cert)
+		.bind(&value.second_cert)
+		.fetch_one(client).await?;
+
+	Ok(())
+}*/
+
+// 今の所使用しない
+/*pub async fn update_confirmed_account(value: &account::Confirmed, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("update confirmed_account set ")
+		.bind(&value.uid)
+		.bind(&value.name)
+		.bind(&value.account_type)
+		.bind(&value.main_uid)
+		.bind(&value.first_cert)
+		.fetch_one(client).await?;
+
+	Ok(())
+}*/
+
+// 今の所使用しない
+/*pub async fn update_pending_account(value: &account::Pending, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("update pending_account set ")
+		.bind(&value.uid)
+		.bind(&value.name)
+		.bind(&value.end_voting)
+		.fetch_one(client).await?;
+
+	Ok(())
+}*/
+
 /// delete func
 
+pub async fn delete_main_account(value: &account::Main, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("delete from main_account where uid = $1")
+		.bind(&value.uid)
+		.fetch_one(client).await?;
+
+	Ok(())
+}
+
+pub async fn delete_sub_account(value: &account::Sub, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("delete from sub_account where uid = $1")
+		.bind(&value.uid)
+		.fetch_one(client).await?;
+
+	Ok(())
+}
+
+pub async fn delete_confirmed_account(value: &account::Confirmed, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("delete from confirmed_account where uid = $1")
+		.bind(&value.uid)
+		.fetch_one(client).await?;
+
+	Ok(())
+}
+
+pub async fn delete_pending_account(value: &account::Pending, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("delete from pending_account where uid = $1")
+		.bind(&value.uid)
+		.fetch_one(client).await?;
+
+	Ok(())
+}
+
+/// upsert func
+
 /// bot admin control func
+
+pub async fn insert_main_account_manual(value: &account::Main, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("insert into main_account values ($1, $2, $3, $4, $5, $6)")
+		.bind(&value.uid)
+		.bind(&value.name)
+		.bind(&value.version)
+		.bind(&value.join_date)
+		.bind(&value.is_sc)
+		.bind(&value.is_leaved)
+		.fetch_one(client).await?;
+
+	Ok(())
+}
