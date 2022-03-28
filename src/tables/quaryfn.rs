@@ -15,6 +15,12 @@ pub async fn get_sub_account(uid: u64, client: &Pool<MySql>) -> Result<account::
 		.fetch_one(client).await
 }
 
+pub async fn get_confirmed_account(uid: u64, client: &Pool<MySql>) -> Result<account::Confirmed, Error> {
+	sqlx::query_as::<_, account::Confirmed>("select * from confirmed_account where uid = ?")
+		.bind(uid)
+		.fetch_one(client).await
+}
+
 pub async fn get_pending_account(uid: u64, client: &Pool<MySql>) -> Result<account::Pending, Error> {
 	sqlx::query_as::<_, account::Pending>("select * from pending_account where uid = ?")
 		.bind(uid)
@@ -42,6 +48,18 @@ pub async fn insert_sub_account(value: &account::Sub, client: &Pool<MySql>) -> R
 		.bind(&value.main_uid)
 		.bind(&value.first_cert)
 		.bind(&value.second_cert)
+		.fetch_one(client).await?;
+
+	Ok(())
+}
+
+pub async fn insert_confirmed_account(value: &account::Confirmed, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("insert into confirmed_account values ($1, $2, $3, $4, $5)")
+		.bind(&value.uid)
+		.bind(&value.name)
+		.bind(&value.account_type)
+		.bind(&value.main_uid)
+		.bind(&value.first_cert)
 		.fetch_one(client).await?;
 
 	Ok(())

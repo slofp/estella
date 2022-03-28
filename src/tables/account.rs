@@ -21,6 +21,15 @@ pub struct Sub {
 }
 
 #[derive(sqlx::FromRow)]
+pub struct Confirmed {
+	pub(crate) uid: u64,
+	pub(crate) name: String,
+	pub(crate) account_type: u8,
+	pub(crate) main_uid: Option<u64>,
+	pub(crate) first_cert: Option<u64>
+}
+
+#[derive(sqlx::FromRow)]
 pub struct Pending {
 	pub(crate) uid: u64,
 	pub(crate) name: String,
