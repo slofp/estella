@@ -30,6 +30,7 @@ features = [
     "standard_framework",
     "utils",
     "rustls_backend",
-    "unstable_discord_api"
+    "unstable_discord_api",
+    "collector"
 ]
 version = "0.10.10"

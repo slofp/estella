@@ -1,20 +1,215 @@
-use log::info;
-use serenity::builder::CreateApplicationCommandOption;
+use std::borrow::BorrowMut;
+use std::num::ParseIntError;
+use chrono::{DateTime, Duration, Utc};
+use log::{error, info};
+use serenity::builder::{CreateApplicationCommandOption, CreateComponents, CreateEmbed};
 use serenity::client::Context;
 use serenity::model::interactions::application_command::{ApplicationCommandInteractionDataOption, ApplicationCommandInteraction, ApplicationCommandOptionType};
+use serenity::model::interactions::InteractionResponseType;
+use serenity::model::interactions::message_component::ButtonStyle;
+use crate::STATIC_COMPONENTS;
+use crate::tables::{account, quaryfn};
+use crate::utils::color;
+
+const PARAM_USERID: &str = "user_id";
+const PARAM_NAME: &str = "name";
+const PARAM_REASON: &str = "reason";
 
 /*
 Paramsは値名→説明→型定義で構成されています
 */
 const PARAMS: [(&str, &str, ApplicationCommandOptionType); 3] = [
-	("user_id", "ユーザーID", ApplicationCommandOptionType::String),
-	("name", "登録名", ApplicationCommandOptionType::String),
-	("reason", "登録理由", ApplicationCommandOptionType::String),
+	(PARAM_USERID, "ユーザーID", ApplicationCommandOptionType::String),
+	(PARAM_NAME, "登録名", ApplicationCommandOptionType::String),
+	(PARAM_REASON, "登録理由", ApplicationCommandOptionType::String),
 ];
 
 pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, command_args: &ApplicationCommandInteractionDataOption) {
-	for b in &command_args.options {
-		info!("option data: {} [{:?}]", b.name, b.value);
+	let mut user_id: Option<String> = None;
+	let mut name: Option<String> = None;
+	let mut reason: Option<String> = None;
+
+	for option in &command_args.options {
+		//info!("option data: {} [{:?}]", b.name, b.value);
+		match (&option.name).as_str() {
+			PARAM_USERID => {
+				let option_value = option.value.as_ref().unwrap();
+				if option_value.is_string() {
+					user_id = Some(option_value.as_str().unwrap_or_else(|| "").to_string());
+				}
+			},
+			PARAM_NAME => {
+				let option_value = option.value.as_ref().unwrap();
+				if option_value.is_string() {
+					name = Some(option_value.as_str().unwrap_or_else(|| "").to_string());
+				}
+			},
+			PARAM_REASON => {
+				let option_value = option.value.as_ref().unwrap();
+				if option_value.is_string() {
+					reason = Some(option_value.as_str().unwrap_or_else(|| "").to_string());
+				}
+			},
+			_ => {}
+		}
+	}
+
+	let mut error_message: Option<String> = None;
+
+	if user_id.is_none() {
+		error!("UserID is undefined.");
+		error_message = Some("UserIDが入力されていません".to_string());
+	}
+	else if name.is_none() {
+		error!("Name is undefined.");
+		error_message = Some("Nameが入力されていません".to_string());
+	}
+
+	let mut user_id_r: Option<Result<u64, ParseIntError>> = None;
+	if error_message.is_none() {
+		user_id_r = Some(user_id.unwrap().parse::<u64>());
+		if let Err(error) = user_id_r.as_ref().unwrap() {
+			error!("user_id coundnt convert u64: {:?}", error);
+			error_message = Some(format!("UserIDの記述が正しくありません: {:?}", error).to_string());
+		}
+	}
+
+	if let Some(err_msg_f) = error_message {
+		if let Err(error) = command.create_interaction_response(&ctx.http,
+			|res|
+				res
+					.kind(InteractionResponseType::ChannelMessageWithSource)
+					.interaction_response_data(|m| {
+						m
+							.create_embed(|e| {
+								e
+									.title("エラー")
+									.description(err_msg_f)
+									.color(color::failed_color())
+							})
+					})
+		).await {
+			error!("{}", error);
+		}
+		return;
+	}
+
+	let user_id: u64 = user_id_r.unwrap().unwrap();
+	let name: String = name.unwrap();
+
+	if let Err(error) = command.create_interaction_response(&ctx.http,
+		|res|
+			res
+				.kind(InteractionResponseType::ChannelMessageWithSource)
+				.interaction_response_data(|m| {
+					m
+						.create_embed(|e| {
+							e
+								.title("確認")
+								.description("以下の内容で登録します")
+								.field("ユーザーID", &user_id, true)
+								.field("名前", &name, true)
+						})
+						.components(|com| {
+							com.create_action_row(|ar| {
+								ar
+									.create_button(|b| {
+										b.custom_id("ok").style(ButtonStyle::Success).label("OK")
+									})
+									.create_button(|b| {
+										b.custom_id("cancel").style(ButtonStyle::Danger).label("キャンセル")
+									})
+							})
+						})
+				})
+	).await {
+		error!("{}", error);
+		return;
+	}
+
+	let mut message = command.get_interaction_response(&ctx.http).await.unwrap();
+	let button_interaction =
+		match message.await_component_interaction(&ctx).timeout(std::time::Duration::from_secs(60 * 3)).await {
+			Some(x) => x,
+			None => {
+				error!("interaction timeout...");
+				return;
+			}
+		};
+
+	if button_interaction.data.custom_id == "ok" {
+		/*if let Err(error) = message.delete(&ctx.http).await {
+			error!("{}", error);
+			return;
+		}*/
+
+		let pending_data = account::Pending {
+			uid: user_id,
+			name: name.clone(),
+			end_voting: Utc::now() + Duration::days(7)
+		};
+
+		let mut lsc = STATIC_COMPONENTS.lock().await;
+		let mut locked_db = lsc.get_sql();
+		if let Err(error) = quaryfn::insert_pending_account(&pending_data, &locked_db).await {
+			error!("DB Error: {:?}", error);
+			error_message = Some(format!("{:?}", error));
+		}
+
+		if let Err(error) = button_interaction.create_interaction_response(&ctx.http, |res| {
+			res
+				.kind(InteractionResponseType::UpdateMessage)
+				.interaction_response_data(|m| {
+					m
+						.set_components(CreateComponents::default())
+						.embeds([])
+						.create_embed(|e| {
+							if let Some(err_msg) = error_message {
+								e
+									.title("エラー")
+									.description(err_msg)
+									.color(color::failed_color())
+							}
+							else {
+								e
+									.title("完了")
+									.description("以下の内容で登録しました！7日間何も無ければ正式に登録されます")
+									.field("ユーザーID", &user_id, true)
+									.field("名前", &name, true)
+									.color(color::success_color())
+							}
+						})
+				})
+		}).await {
+			error!("{}", error);
+			return;
+		}
+		//button_interaction.defer(&ctx.http).await;
+	}
+	else if button_interaction.data.custom_id == "cancel" {
+		/*if let Err(error) = message.delete(&ctx.http).await {
+			error!("{}", error);
+			return;
+		}*/
+		if let Err(error) = button_interaction.create_interaction_response(&ctx.http, |res| {
+			res
+				.kind(InteractionResponseType::UpdateMessage)
+				.interaction_response_data(|m| {
+					m
+						.set_components(CreateComponents::default())
+						.embeds([])
+						.create_embed(|e| {
+							e
+								.title("キャンセル")
+								.description("処理を取り消しました")
+								.color(color::normal_color())
+						})
+				})
+		}).await {
+			error!("{}", error);
+			return;
+		}
+		//button_interaction.defer(&ctx.http).await;
 	}
 }
 
