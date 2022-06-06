@@ -1,5 +1,5 @@
 use sqlx::{Error, MySql, Pool};
-use crate::tables::account;
+use crate::tables::{account, guild};
 
 /// select func
 
@@ -23,6 +23,17 @@ pub async fn get_confirmed_account(uid: u64, client: &Pool<MySql>) -> Result<acc
 
 pub async fn get_pending_account(uid: u64, client: &Pool<MySql>) -> Result<account::Pending, Error> {
 	sqlx::query_as::<_, account::Pending>("select * from pending_account where uid = ?")
+		.bind(uid)
+		.fetch_one(client).await
+}
+
+pub async fn get_all_pending_account(client: &Pool<MySql>) -> Result<Vec<account::Pending>, Error> {
+	sqlx::query_as::<_, account::Pending>("select * from pending_account")
+		.fetch_all(client).await
+}
+
+pub async fn get_guild_config(uid: u64, client: &Pool<MySql>) -> Result<guild::Config, Error> {
+	sqlx::query_as::<_, guild::Config>("select * from guild_config where uid = ?")
 		.bind(uid)
 		.fetch_one(client).await
 }
@@ -66,9 +77,10 @@ pub async fn insert_confirmed_account(value: &account::Confirmed, client: &Pool<
 }
 
 pub async fn insert_pending_account(value: &account::Pending, client: &Pool<MySql>) -> Result<(), Error> {
-	sqlx::query("insert into pending_account values (?, ?, ?)")
+	sqlx::query("insert into pending_account values (?, ?, ?, ?)")
 		.bind(&value.uid)
 		.bind(&value.name)
+		.bind(&value.message_id)
 		.bind(&value.end_voting)
 		.execute(client).await?;
 

@@ -33,5 +33,6 @@ pub struct Confirmed {
 pub struct Pending {
 	pub(crate) uid: u64,
 	pub(crate) name: String,
+	pub(crate) message_id: u64,
 	pub(crate) end_voting: DateTime<Utc>
 }
