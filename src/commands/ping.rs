@@ -3,6 +3,7 @@ use serenity::builder::CreateApplicationCommandOption;
 use serenity::client::Context;
 use serenity::model::interactions::application_command::{ApplicationCommandInteraction, ApplicationCommandOptionType};
 use serenity::model::interactions::InteractionResponseType;
+use crate::utils::color;
 
 pub async fn execute(ctx: Context, command: ApplicationCommandInteraction) {
 	if let Err(error) = command.create_interaction_response(&ctx.http,
@@ -24,7 +25,13 @@ pub async fn execute(ctx: Context, command: ApplicationCommandInteraction) {
 
 	if let Err(error) = command.edit_original_interaction_response(&ctx.http,
 		|m|
-			m.content(format!("{}ms", ping_ms))
+			m
+				.create_embed(|e| {
+					e
+						.title("Ping結果")
+						.description(format!("{}ms", ping_ms))
+						.color(color::normal_color())
+				})
 	).await {
 		error!("{}", error);
 	}
