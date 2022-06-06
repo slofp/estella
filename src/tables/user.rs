@@ -1,8 +1,6 @@
 #[derive(sqlx::FromRow)]
 pub struct Data {
 	uid: u64,
-	username: String,
-	discriminator: u16,
 	glacialeur: Option<String>
 }
 
