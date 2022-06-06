@@ -57,7 +57,9 @@ async fn main() {
     let mut client = create_client(&config).await;
 
 
-    STATIC_COMPONENTS.lock().await.sets(config, mysql_client, client.shard_manager.clone());
+    let mut lsc = STATIC_COMPONENTS.lock().await;
+    lsc.sets(config, mysql_client, client.shard_manager.clone());
+    std::mem::drop(lsc);
 
     start_signal();
 
