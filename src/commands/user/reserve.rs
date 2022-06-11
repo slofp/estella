@@ -1,18 +1,17 @@
-use std::borrow::BorrowMut;
 use std::num::ParseIntError;
-use chrono::{DateTime, Duration, Local, Utc};
-use log::{error, info};
-use serenity::builder::{CreateApplicationCommandOption, CreateComponents, CreateEmbed};
+use chrono::{Duration, Local, Utc};
+use log::error;
+use serenity::builder::{CreateApplicationCommandOption, CreateComponents};
 use serenity::client::Context;
 use serenity::model::id::ChannelId;
 use serenity::model::interactions::application_command::{ApplicationCommandInteractionDataOption, ApplicationCommandInteraction, ApplicationCommandOptionType};
 use serenity::model::interactions::InteractionResponseType;
 use serenity::model::interactions::message_component::ButtonStyle;
-use sqlx::Error;
+use crate::events::ready_event::ADD_PENDING_USERS;
 use crate::STATIC_COMPONENTS;
 use crate::tables::{account, quaryfn};
-use crate::tables::guild::Config;
 use crate::utils::color;
+use crate::utils::enums::AccountType;
 
 const PARAM_USERID: &str = "user_id";
 const PARAM_NAME: &str = "name";
@@ -118,10 +117,10 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 							com.create_action_row(|ar| {
 								ar
 									.create_button(|b| {
-										b.custom_id("ok").style(ButtonStyle::Success).label("OK")
+										b.custom_id(format!("ok_{}", &user_id)).style(ButtonStyle::Success).label("OK")
 									})
 									.create_button(|b| {
-										b.custom_id("cancel").style(ButtonStyle::Danger).label("キャンセル")
+										b.custom_id(format!("cancel_{}", &user_id)).style(ButtonStyle::Danger).label("キャンセル")
 									})
 							})
 						})
@@ -131,7 +130,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 		return;
 	}
 
-	let mut message = command.get_interaction_response(&ctx.http).await.unwrap();
+	let message = command.get_interaction_response(&ctx.http).await.unwrap();
 	let button_interaction =
 		match message.await_component_interaction(&ctx).timeout(std::time::Duration::from_secs(60 * 3)).await {
 			Some(x) => x,
@@ -141,7 +140,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 			}
 		};
 
-	if button_interaction.data.custom_id == "ok" {
+	if button_interaction.data.custom_id == format!("ok_{}", &user_id) {
 		/*if let Err(error) = message.delete(&ctx.http).await {
 			error!("{}", error);
 			return;
@@ -167,8 +166,8 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 			return;
 		}
 
-		let mut lsc = STATIC_COMPONENTS.lock().await;
-		let mut locked_db = lsc.get_sql();
+		let lsc = STATIC_COMPONENTS.lock().await;
+		let locked_db = lsc.get_sql();
 		if command.guild_id.is_none() {
 			error!("Should not occur error: GuildID is none");
 			return;
@@ -183,37 +182,58 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 		};
 		if let Some(guild_config) = guild_config {
 			if let Some(guild_log_channel) = guild_config.log_channel_id {
-				let pending_data = account::Pending {
-					uid: user_id,
-					name: name.clone(),
-					message_id: 0,
-					end_voting: Utc::now() + Duration::days(7)
-				};
-
+				let end_vote_time = Utc::now() + Duration::days(7);
 				let log_channel = ChannelId(guild_log_channel);
-				if let Err(error) = log_channel.send_message(&ctx.http, |m| {
-					m.add_embed(|e| {
-						e
-							.title("追加申請")
-							.description("以下の内容で登録申請されました。これはテストです。")
-							.field("ユーザーID", &pending_data.uid, true)
-							.field("名前", &pending_data.name, true)
-							.field("申請却下終了時刻", &pending_data.end_voting.with_timezone(&Local).format("%Y/%m/%d %H:%M:%S"), true)
-							.color(color::normal_color());
-						if let Some(reason) = reason {
+				let vote_message = log_channel.send_message(&ctx.http, |m| {
+					m
+						.add_embed(|e| {
 							e
-								.field("申請理由", reason, true);
-						}
-						e
-					})
-				}).await {
+								.title("追加申請")
+								.description("以下の内容で登録申請されました。これはテストです。")
+								.field("ユーザーID", &user_id, true)
+								.field("名前", &name, true)
+								.field("申請却下終了時刻", &end_vote_time.with_timezone(&Local).format("%Y/%m/%d %H:%M:%S"), true)
+								.color(color::normal_color());
+							if let Some(reason) = reason {
+								e
+									.field("申請理由", reason, true);
+							}
+							e
+						})
+						.components(|com| {
+							com.create_action_row(|ar| {
+								ar
+									.create_button(|b| {
+										b.custom_id(format!("reject_{}", &user_id)).style(ButtonStyle::Danger).label("申請を却下する")
+									})
+							})
+						})
+				}).await;
+				if let Err(ref error) = vote_message {
 					error!("Error: {:?}", error);
 					return;
 				}
+				let vote_message = vote_message.unwrap();
+
+				let pending_data = account::Pending {
+					uid: user_id,
+					name: name.clone(),
+					message_id: *(&vote_message).id.as_u64(),
+					end_voting: Some(Utc::now() + Duration::seconds(30)), // + Duration::days(7),
+					guild_id: guild_config.uid,
+					account_type: AccountType::Main,
+					main_uid: None,
+					first_cert: None
+				};
 
 				if let Err(error) = quaryfn::insert_pending_account(&pending_data, &locked_db).await {
 					error!("DB Error: {:?}", error);
 					error_message = Some(format!("{:?}", error));
+				}
+				else {
+					let mut lpu = ADD_PENDING_USERS.lock().await;
+					lpu.push(pending_data);
+					std::mem::drop(lpu);
 				}
 			}
 			else {
@@ -252,7 +272,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 		}
 		//button_interaction.defer(&ctx.http).await;
 	}
-	else if button_interaction.data.custom_id == "cancel" {
+	else if button_interaction.data.custom_id == format!("cancel_{}", &user_id) {
 		/*if let Err(error) = message.delete(&ctx.http).await {
 			error!("{}", error);
 			return;
