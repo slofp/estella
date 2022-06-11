@@ -4,7 +4,7 @@ use serenity::model::guild::Member;
 use serenity::model::id::{ChannelId, GuildId};
 use serenity::model::user::User;
 use crate::STATIC_COMPONENTS;
-use crate::tables::quaryfn::{delete_main_account, delete_sub_account, get_guild_config, get_main_account, get_main_sub_account, get_sub_account};
+use crate::tables::quaryfn::{delete_main_account, delete_sub_account, get_guild_config, get_main_account, get_main_sub_account, get_sub_account, update_main_account};
 use crate::utils::{color, convert};
 
 pub async fn execute(ctx: Context, guild_id: GuildId, user: User, member_data_if_available: Option<Member>) {
@@ -47,22 +47,23 @@ pub async fn execute(ctx: Context, guild_id: GuildId, user: User, member_data_if
 			error!("DB Error: {:?}", error);
 		}
 	}
+	else if let Err(error) = mem_account {
+		error!("DB Error: {:?}", error);
+	}
 
 	let mem_account = get_main_account(*guild_id.as_u64(), *user.id.as_u64(), &locked_db).await;
-	if let Ok(mem_account) = mem_account {
+	if let Ok(mut mem_account) = mem_account {
 		let main_sub_accounts = get_main_sub_account(mem_account.uid, &locked_db).await;
 		if let Ok(main_sub_accounts) = main_sub_accounts {
 			for main_sub_account in main_sub_accounts {
 				if let Err(error) = guild_id.kick(&ctx.http, main_sub_account.uid).await {
 					error!("{}", error);
 				}
-				if let Err(error) = delete_sub_account(&main_sub_account, &locked_db).await {
-					error!("DB Error: {:?}", error);
-				}
 			}
 		}
 
-		if let Err(error) = delete_main_account(&mem_account, &locked_db).await {
+		mem_account.is_leaved = true;
+		if let Err(error) = update_main_account(&mem_account, &locked_db).await {
 			error!("DB Error: {:?}", error);
 		}
 	}
