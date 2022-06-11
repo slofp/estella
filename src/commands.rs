@@ -33,6 +33,10 @@ pub async fn interaction_route(ctx: Context, command: ApplicationCommandInteract
 		debug!("option name: {}", option.name);
 	}
 
+	if command.user.bot {
+		return;
+	}
+
 	match command.data.name.as_str() {
 		"estella" => root_commands_route(ctx, command).await,
 		_ => error!("No Exist Command!")
