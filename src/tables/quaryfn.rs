@@ -106,7 +106,7 @@ pub async fn insert_pending_account(value: &account::Pending, client: &Pool<MySq
 }
 
 pub async fn init_user_data(uid: u64, glacialeur: Option<String>, client: &Pool<MySql>) -> Result<(), Error> {
-	sqlx::query("insert into user_data values (?, ?)")
+	sqlx::query("insert into user_data(uid, glacialeur) values (?, ?)")
 		.bind(uid)
 		.bind(glacialeur)
 		.execute(client).await?;
@@ -115,7 +115,7 @@ pub async fn init_user_data(uid: u64, glacialeur: Option<String>, client: &Pool<
 }
 
 pub async fn init_user_level(uid: u64, client: &Pool<MySql>) -> Result<(), Error> {
-	sqlx::query("insert into pending_account values (?)")
+	sqlx::query("insert into level(uid) values (?)")
 		.bind(uid)
 		.execute(client).await?;
 
@@ -123,7 +123,7 @@ pub async fn init_user_level(uid: u64, client: &Pool<MySql>) -> Result<(), Error
 }
 
 pub async fn init_guild_config(uid: u64, client: &Pool<MySql>) -> Result<(), Error> {
-	sqlx::query("insert into guild_config values (?)")
+	sqlx::query("insert into guild_config(uid) values (?)")
 		.bind(uid)
 		.execute(client).await?;
 
