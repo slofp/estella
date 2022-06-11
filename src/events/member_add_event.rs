@@ -35,6 +35,14 @@ pub async fn execute(ctx: Context, guild_id: GuildId, mut new_member: Member) {
 		else {
 			warn!("log channel is not found");
 		}
+		if let Some(role_id) = guild_config.bot_role_id {
+			if let Err(error) = new_member.add_role(&ctx.http, role_id).await {
+				error!("Error: {:?}", error);
+			}
+		}
+		else {
+			warn!("bot_role_id is none");
+		}
 		return;
 	}
 
