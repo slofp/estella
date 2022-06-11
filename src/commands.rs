@@ -5,7 +5,6 @@ use serenity::model::interactions::application_command::{ApplicationCommandInter
 //use serenity::model::interactions::InteractionResponseType;
 //use serenity::model::interactions::message_component::ButtonStyle;
 
-mod test;
 mod version;
 mod user;
 mod ping;
@@ -71,7 +70,6 @@ fn root_command_build(command: &mut CreateApplicationCommand) -> &mut CreateAppl
 	command
 		.name("estella")
 		.description("Estella Command Root")
-		.create_option(test::commands_build)
 		.create_option(version::command_build)
 		.create_option(user::commands_build)
 		.create_option(ping::command_build)
