@@ -141,8 +141,7 @@ fn to_string_36(id: u64) -> String {
 	return result.chars().rev().collect();
 }
 
-pub fn generate(discord_id_: &u64, version: u8, join_unixtime_: i64) -> String {
-	let discord_id = *discord_id_;
+pub fn generate(discord_id: u64, version: u8, join_unixtime_: i64) -> String {
 	let join_unixtime = join_unixtime_.to_u32().unwrap();
 	let comp_discord_id = gen_comp_disco_id(&discord_id);
 
