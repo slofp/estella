@@ -6,7 +6,8 @@ use serenity::model::channel::Message;
 use serenity::model::id::{CommandId, GuildId};
 use sqlx::Row;
 use crate::{commands, exit, STATIC_COMPONENTS};
-use crate::tables::quaryfn::init_guild_config;
+use crate::tables::account;
+use crate::tables::quaryfn::{init_guild_config, insert_main_account_manual};
 
 /*#[derive(sqlx::FromRow)]
 struct UserData {
@@ -42,6 +43,9 @@ pub async fn execute(ctx: Context, message: Message) {
 	else if message.content.starts_with("estella.g_init") {
 		guild_init(*message.guild_id.unwrap().as_u64()).await;
 	}
+	else if message.content.starts_with("estella.insert") {
+		insert(&ctx, message).await;
+	}
 }
 
 async fn message_log(message: &Message, cache: Arc<Cache>) {
@@ -52,6 +56,39 @@ async fn message_log(message: &Message, cache: Arc<Cache>) {
 		message.kind,
 		message.content,
 		message.timestamp);
+}
+
+async fn insert(ctx: &Context, message: Message) {
+	let message_rep = message.content.replace("estella.insert", "");
+	let message_split = message_rep.trim().split(' ');
+	let message_vec: Vec<&str> = message_split.collect::<Vec<&str>>();
+
+	if let Err(error) = message.channel_id.send_message(
+		&ctx.http,
+		|m| m.content(format!("inserting: {}", message_vec[0]))
+	).await {
+		error!("{}", error);
+	}
+
+	let user_id: u64 = message_vec[0].parse().expect("Coundnt parse uid");
+	let user_data = message.guild_id.unwrap().member(&ctx.http, user_id).await.unwrap();
+
+	let insert_data = account::Main {
+		uid: user_id,
+		name: message_vec[1].to_string(),
+		guild_id: *message.guild_id.unwrap().as_u64(),
+		version: message_vec[2].parse().expect("Coundnt parse version"),
+		join_date: user_data.joined_at.unwrap_or(message.guild_id.unwrap().created_at()),
+		is_sc: message_vec[3].parse().expect("Coundnt parse is_sc"),
+		is_leaved: message_vec[4].parse().expect("Coundnt parse is_leaved")
+	};
+
+	let lsc = STATIC_COMPONENTS.lock().await;
+	let mysql_client = lsc.get_sql();
+	if let Err(error) = insert_main_account_manual(&insert_data, mysql_client).await {
+
+	}
+	std::mem::drop(lsc);
 }
 
 async fn guild_init(guild_id: u64) {
