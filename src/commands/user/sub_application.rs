@@ -4,7 +4,7 @@ use serenity::builder::CreateApplicationCommandOption;
 use serenity::client::Context;
 use serenity::model::id::ChannelId;
 use serenity::model::interactions::application_command::{ApplicationCommandInteraction, ApplicationCommandInteractionDataOption, ApplicationCommandOptionType};
-use serenity::model::interactions::InteractionResponseType;
+use serenity::model::interactions::{InteractionApplicationCommandCallbackDataFlags, InteractionResponseType};
 use serenity::model::interactions::message_component::ButtonStyle;
 use crate::STATIC_COMPONENTS;
 use crate::tables::{account, quaryfn};
@@ -113,6 +113,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 									})
 							})
 						})
+						.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
 				})
 	).await {
 		error!("{}", error);

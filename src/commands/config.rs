@@ -4,7 +4,7 @@ use serenity::builder::CreateApplicationCommandOption;
 use serenity::client::Context;
 use serenity::model::channel::Message;
 use serenity::model::interactions::application_command::{ApplicationCommandInteraction, ApplicationCommandOptionType};
-use serenity::model::interactions::InteractionResponseType;
+use serenity::model::interactions::{InteractionApplicationCommandCallbackDataFlags, InteractionResponseType};
 use serenity::model::interactions::message_component::{ButtonStyle, MessageComponentInteraction};
 use crate::STATIC_COMPONENTS;
 use crate::tables::quaryfn::{update_guild_config_auth, update_guild_config_bot, update_guild_config_leave, update_guild_config_log, update_guild_config_white};
@@ -17,6 +17,32 @@ const MENU_PARAM_WL: &str = "white_list";
 const MENU_PARAM_LB: &str = "leave_ban";
 
 pub async fn execute(ctx: Context, command: ApplicationCommandInteraction) {
+	if let Some(guild) = command.guild_id.unwrap().to_guild_cached(&ctx.cache).await {
+		if command.user.id != guild.owner_id {
+			if let Err(error) = command.create_interaction_response(&ctx.http,
+				|res|
+					res
+						.kind(InteractionResponseType::ChannelMessageWithSource)
+						.interaction_response_data(|ird| {
+							ird
+								.create_embed(|cm| {
+									cm
+										.title("エラー")
+										.description("このコマンドはサーバーオーナーのみ使用できます")
+										.color(color::failed_color())
+								})
+						})
+			).await {
+				error!("{}", error);
+			}
+			return;
+		}
+	}
+	else {
+		error!("Not found Guild");
+		return;
+	}
+
 	if let Err(error) = command.create_interaction_response(&ctx.http,
 		|res|
 			res
@@ -75,6 +101,7 @@ pub async fn execute(ctx: Context, command: ApplicationCommandInteraction) {
 								.description("下の選択メニューから設定したい項目を選択してください。")
 								.color(color::normal_color())
 						})
+						.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
 				})
 	).await {
 		error!("{}", error);
@@ -261,6 +288,7 @@ async fn log_channel_config(ctx: &Context, command: &ApplicationCommandInteracti
 								.description("処理を取り消しました")
 								.color(color::normal_color())
 						})
+						.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
 				})
 		}).await {
 			error!("{}", error);
@@ -423,6 +451,7 @@ async fn auth_role_config(ctx: &Context, command: &ApplicationCommandInteraction
 								.description("処理を取り消しました")
 								.color(color::normal_color())
 						})
+						.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
 				})
 		}).await {
 			error!("{}", error);
@@ -585,6 +614,7 @@ async fn bot_role_config(ctx: &Context, command: &ApplicationCommandInteraction,
 								.description("処理を取り消しました")
 								.color(color::normal_color())
 						})
+						.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
 				})
 		}).await {
 			error!("{}", error);
@@ -730,6 +760,7 @@ async fn white_list_config(ctx: &Context, command: &ApplicationCommandInteractio
 								.description("処理を取り消しました")
 								.color(color::normal_color())
 						})
+						.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
 				})
 		}).await {
 			error!("{}", error);
@@ -875,6 +906,7 @@ async fn leave_ban_config(ctx: &Context, command: &ApplicationCommandInteraction
 								.description("処理を取り消しました")
 								.color(color::normal_color())
 						})
+						.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
 				})
 		}).await {
 			error!("{}", error);

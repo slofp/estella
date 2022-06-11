@@ -5,7 +5,7 @@ use serenity::builder::{CreateApplicationCommandOption, CreateComponents};
 use serenity::client::Context;
 use serenity::model::id::ChannelId;
 use serenity::model::interactions::application_command::{ApplicationCommandInteractionDataOption, ApplicationCommandInteraction, ApplicationCommandOptionType};
-use serenity::model::interactions::InteractionResponseType;
+use serenity::model::interactions::{InteractionApplicationCommandCallbackDataFlags, InteractionResponseType};
 use serenity::model::interactions::message_component::ButtonStyle;
 use crate::events::ready_event::ADD_PENDING_USERS;
 use crate::STATIC_COMPONENTS;
@@ -124,6 +124,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 									})
 							})
 						})
+						.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
 				})
 	).await {
 		error!("{}", error);
@@ -189,7 +190,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 						.add_embed(|e| {
 							e
 								.title("追加申請")
-								.description("以下の内容で登録申請されました。これはテストです。")
+								.description("以下の内容で登録申請されました。内容を見てこのサーバーに入れたくないと判断した場合は「却下」ボタンを押してください")
 								.field("ユーザーID", &user_id, true)
 								.field("名前", &name, true)
 								.field("申請却下終了時刻", &end_vote_time.with_timezone(&Local).format("%Y/%m/%d %H:%M:%S"), true)
