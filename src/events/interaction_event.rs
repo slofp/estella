@@ -2,7 +2,8 @@ use log::{debug, info};
 use serenity::client::Context;
 use serenity::model::interactions::Interaction;
 use crate::commands;
-use crate::events::ready_event::{conf_process, reject_vote_process};
+use crate::events::ready_event::{conf_process, conf_result_send_message, reject_vote_process};
+use crate::utils::enums::ConfResponseType;
 
 pub async fn execute(ctx: Context, interaction: Interaction) {
 	debug!("interaction: {:#?}", interaction);
@@ -26,11 +27,11 @@ pub async fn execute(ctx: Context, interaction: Interaction) {
 			let user_id: u64 = user_id.parse::<u64>().unwrap();
 			info!("{}", user_id);
 			info!("{}", *mc.user.id.as_u64());
-			//if *mc.user.id.as_u64() == user_id {
-			//	info!("user_id is equal pressed button user id");
-			//	conf_result_send_message(&ctx, &mc, ConfResponseType::EqualErr, "").await;
-			//	return;
-			//}
+			if *mc.user.id.as_u64() == user_id {
+				info!("user_id is equal pressed button user id");
+				conf_result_send_message(&ctx, &mc, ConfResponseType::EqualErr, "").await;
+				return;
+			}
 			let p_user_id = split_custom_id[2];
 			let p_user_id: u64 = p_user_id.parse::<u64>().unwrap();
 			info!("{}", p_user_id);
