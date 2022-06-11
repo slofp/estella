@@ -34,3 +34,9 @@ features = [
     "collector"
 ]
 version = "0.10.10"
+
+[profile.release]
+debuginfo = 0
+codegen-units = 1
+opt-level = 3
+panic = "unwind"
