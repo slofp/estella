@@ -122,6 +122,14 @@ pub async fn init_user_level(uid: u64, client: &Pool<MySql>) -> Result<(), Error
 	Ok(())
 }
 
+pub async fn init_guild_config(uid: u64, client: &Pool<MySql>) -> Result<(), Error> {
+	sqlx::query("insert into guild_config values (?)")
+		.bind(uid)
+		.execute(client).await?;
+
+	Ok(())
+}
+
 /// update func
 
 pub async fn update_main_account(value: &account::Main, client: &Pool<MySql>) -> Result<(), Error> {

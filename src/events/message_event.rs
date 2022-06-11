@@ -6,6 +6,7 @@ use serenity::model::channel::Message;
 use serenity::model::id::{CommandId, GuildId};
 use sqlx::Row;
 use crate::{commands, exit, STATIC_COMPONENTS};
+use crate::tables::quaryfn::init_guild_config;
 
 /*#[derive(sqlx::FromRow)]
 struct UserData {
@@ -38,6 +39,9 @@ pub async fn execute(ctx: Context, message: Message) {
 	else if message.content.starts_with("estella.delete") {
 		delete(message, &ctx.http).await;
 	}
+	else if message.content.starts_with("estella.g_init") {
+		guild_init(*message.guild_id.unwrap().as_u64()).await;
+	}
 }
 
 async fn message_log(message: &Message, cache: Arc<Cache>) {
@@ -48,6 +52,15 @@ async fn message_log(message: &Message, cache: Arc<Cache>) {
 		message.kind,
 		message.content,
 		message.timestamp);
+}
+
+async fn guild_init(guild_id: u64) {
+	let lsc = STATIC_COMPONENTS.lock().await;
+	let mysql_client = lsc.get_sql();
+	if let Err(error) = init_guild_config(guild_id, mysql_client).await {
+		error!("DB Error: {:?}", error);
+	}
+	std::mem::drop(lsc);
 }
 
 async fn test() {
