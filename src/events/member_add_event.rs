@@ -5,7 +5,7 @@ use serenity::model::id::{ChannelId, GuildId};
 use serenity::model::user::User;
 use crate::STATIC_COMPONENTS;
 use crate::tables::account;
-use crate::tables::quaryfn::{delete_confirmed_account, get_confirmed_account, get_guild_config, init_user_data, init_user_level, insert_main_account, insert_sub_account};
+use crate::tables::quaryfn::{delete_confirmed_account, get_confirmed_account, get_guild_config, init_user_data, insert_main_account, insert_sub_account};
 use crate::utils::{color, convert, glacialeur};
 use crate::utils::enums::AccountType;
 
@@ -129,9 +129,6 @@ pub async fn execute(ctx: Context, guild_id: GuildId, mut new_member: Member) {
 	let lsc = STATIC_COMPONENTS.lock().await;
 	let locked_db = lsc.get_sql();
 	if let Err(error) = init_user_data(member_account.uid, g_str, &locked_db).await {
-		error!("DB Error: {:?}", error);
-	}
-	if let Err(error) = init_user_level(member_account.uid, &locked_db).await {
 		error!("DB Error: {:?}", error);
 	}
 

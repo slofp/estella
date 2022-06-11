@@ -7,7 +7,7 @@ use serenity::model::id::{CommandId, GuildId};
 use sqlx::Row;
 use crate::{commands, exit, STATIC_COMPONENTS};
 use crate::tables::account;
-use crate::tables::quaryfn::{init_guild_config, insert_main_account_manual};
+use crate::tables::quaryfn::{init_guild_config, insert_main_account_manual, insert_sub_account};
 
 /*#[derive(sqlx::FromRow)]
 struct UserData {
@@ -38,13 +38,19 @@ pub async fn execute(ctx: Context, message: Message) {
 		create(message, &ctx.http).await;
 	}
 	else if message.content.starts_with("estella.delete") {
+		// estella.delete (command_id)
 		delete(message, &ctx.http).await;
 	}
 	else if message.content.starts_with("estella.g_init") {
 		guild_init(*message.guild_id.unwrap().as_u64()).await;
 	}
 	else if message.content.starts_with("estella.insert") {
+		// estella.insert (uid) (name) (version) (is_sc) (is_leave)
 		insert(&ctx, message).await;
+	}
+	else if message.content.starts_with("estella.insert_sub") {
+		// estella.insert_sub (uid) (name) (main_uid)
+		insert_sub(&ctx, message).await;
 	}
 }
 
@@ -56,6 +62,39 @@ async fn message_log(message: &Message, cache: Arc<Cache>) {
 		message.kind,
 		message.content,
 		message.timestamp);
+}
+
+async fn insert_sub(ctx: &Context, message: Message) {
+	let message_rep = message.content.replace("estella.insert_sub", "");
+	let message_split = message_rep.trim().split(' ');
+	let message_vec: Vec<&str> = message_split.collect::<Vec<&str>>();
+
+	if let Err(error) = message.channel_id.send_message(
+		&ctx.http,
+		|m| m.content(format!("inserting: {}", message_vec[0]))
+	).await {
+		error!("{}", error);
+	}
+
+	let user_id: u64 = message_vec[0].parse().expect("Coundnt parse uid");
+	let user_data = message.guild_id.unwrap().member(&ctx.http, user_id).await.unwrap();
+
+	let insert_data = account::Sub {
+		uid: user_id,
+		name: message_vec[1].to_string(),
+		guild_id: *message.guild_id.unwrap().as_u64(),
+		join_date: user_data.joined_at.unwrap_or(message.guild_id.unwrap().created_at()),
+		main_uid: message_vec[2].parse().expect("Coundnt parse main_uid"),
+		first_cert: *message.author.id.as_u64(),
+		second_cert: None
+	};
+
+	let lsc = STATIC_COMPONENTS.lock().await;
+	let mysql_client = lsc.get_sql();
+	if let Err(error) = insert_sub_account(&insert_data, mysql_client).await {
+		error!("DB Error: {:?}", error);
+	}
+	std::mem::drop(lsc);
 }
 
 async fn insert(ctx: &Context, message: Message) {
@@ -86,7 +125,7 @@ async fn insert(ctx: &Context, message: Message) {
 	let lsc = STATIC_COMPONENTS.lock().await;
 	let mysql_client = lsc.get_sql();
 	if let Err(error) = insert_main_account_manual(&insert_data, mysql_client).await {
-
+		error!("DB Error: {:?}", error);
 	}
 	std::mem::drop(lsc);
 }

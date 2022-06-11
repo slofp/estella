@@ -1,8 +1,7 @@
 use std::sync::Arc;
-use log::{error, info};
+use log::error;
 use serenity::builder::CreateApplicationCommandOption;
 use serenity::client::Context;
-use serenity::model::channel::Message;
 use serenity::model::interactions::application_command::{ApplicationCommandInteraction, ApplicationCommandOptionType};
 use serenity::model::interactions::{InteractionApplicationCommandCallbackDataFlags, InteractionResponseType};
 use serenity::model::interactions::message_component::{ButtonStyle, MessageComponentInteraction};
@@ -167,7 +166,7 @@ async fn log_channel_config(ctx: &Context, command: &ApplicationCommandInteracti
 	}
 
 	let mut error_message: Option<String> = None;
-	let mut channel_id_r = rep_message.content.clone().parse::<u64>();
+	let channel_id_r = rep_message.content.clone().parse::<u64>();
 	if let Err(ref error) = channel_id_r {
 		error!("channel_id coundnt convert u64: {:?}", error);
 		error_message = Some(format!("チャンネルIDの記述が正しくありません: {:?}", error).to_string());
@@ -330,7 +329,7 @@ async fn auth_role_config(ctx: &Context, command: &ApplicationCommandInteraction
 	}
 
 	let mut error_message: Option<String> = None;
-	let mut auth_id_r = rep_message.content.clone().parse::<u64>();
+	let auth_id_r = rep_message.content.clone().parse::<u64>();
 	if let Err(ref error) = auth_id_r {
 		error!("auth_id coundnt convert u64: {:?}", error);
 		error_message = Some(format!("チャンネルIDの記述が正しくありません: {:?}", error).to_string());
@@ -493,7 +492,7 @@ async fn bot_role_config(ctx: &Context, command: &ApplicationCommandInteraction,
 	}
 
 	let mut error_message: Option<String> = None;
-	let mut bot_id_r = rep_message.content.clone().parse::<u64>();
+	let bot_id_r = rep_message.content.clone().parse::<u64>();
 	if let Err(ref error) = bot_id_r {
 		error!("auth_id coundnt convert u64: {:?}", error);
 		error_message = Some(format!("チャンネルIDの記述が正しくありません: {:?}", error).to_string());

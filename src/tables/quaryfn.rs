@@ -114,14 +114,6 @@ pub async fn init_user_data(uid: u64, glacialeur: Option<String>, client: &Pool<
 	Ok(())
 }
 
-pub async fn init_user_level(uid: u64, client: &Pool<MySql>) -> Result<(), Error> {
-	sqlx::query("insert into level(uid) values (?)")
-		.bind(uid)
-		.execute(client).await?;
-
-	Ok(())
-}
-
 pub async fn init_guild_config(uid: u64, client: &Pool<MySql>) -> Result<(), Error> {
 	sqlx::query("insert into guild_config(uid) values (?)")
 		.bind(uid)
@@ -226,14 +218,14 @@ pub async fn update_pending_sub_account(value: &account::Pending, client: &Pool<
 
 /// delete func
 
-pub async fn delete_main_account(value: &account::Main, client: &Pool<MySql>) -> Result<(), Error> {
+/*pub async fn delete_main_account(value: &account::Main, client: &Pool<MySql>) -> Result<(), Error> {
 	sqlx::query("delete from main_account where guild_id = ? and uid = ?")
 		.bind(&value.guild_id)
 		.bind(&value.uid)
 		.execute(client).await?;
 
 	Ok(())
-}
+}*/
 
 pub async fn delete_sub_account(value: &account::Sub, client: &Pool<MySql>) -> Result<(), Error> {
 	sqlx::query("delete from sub_account where guild_id = ? and uid = ?")

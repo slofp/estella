@@ -4,7 +4,7 @@ use serenity::model::guild::Member;
 use serenity::model::id::{ChannelId, GuildId};
 use serenity::model::user::User;
 use crate::STATIC_COMPONENTS;
-use crate::tables::quaryfn::{delete_main_account, delete_sub_account, get_guild_config, get_main_account, get_main_sub_account, get_sub_account, update_main_account};
+use crate::tables::quaryfn::{delete_sub_account, get_guild_config, get_main_account, get_main_sub_account, get_sub_account, update_main_account};
 use crate::utils::{color, convert};
 
 pub async fn execute(ctx: Context, guild_id: GuildId, user: User, member_data_if_available: Option<Member>) {

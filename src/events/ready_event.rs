@@ -334,11 +334,13 @@ pub async fn conf_process(ctx: &Context, mc: &MessageComponentInteraction, guild
 	let message = ctx.http.get_message(guild_config.log_channel_id.unwrap(), p_user.message_id).await;
 	if let Err(ref error) = message {
 		error!("Error: {:?}", error);
+		conf_result_send_message(ctx, mc, ConfResponseType::OtherErr, "メッセージが見つかりません").await;
 		return;
 	}
 	let mut message = message.unwrap();
 	if message.embeds.len() == 0 {
 		error!("Error: Not found embed");
+		conf_result_send_message(ctx, mc, ConfResponseType::OtherErr, "メッセージが見つかりません").await;
 		return;
 	}
 	let mut message_embed: Embed = message.embeds[0].clone();
@@ -356,6 +358,8 @@ pub async fn conf_process(ctx: &Context, mc: &MessageComponentInteraction, guild
 	let locked_db = lsc.get_sql();
 	if let Err(error) = update_pending_sub_account(&p_user, &locked_db).await {
 		error!("DB Error: {:?}", error);
+		conf_result_send_message(ctx, mc, ConfResponseType::OtherErr, error).await;
+		return;
 	}
 	std::mem::drop(lsc);
 
