@@ -16,11 +16,11 @@ const PARAM_USERID: &str = "user_id";
 const PARAM_NAME: &str = "name";
 
 /*
-Paramsは値名→説明→型定義で構成されています
+Paramsは値名→説明→型定義→必須で構成されています
 */
-const PARAMS: [(&str, &str, ApplicationCommandOptionType); 2] = [
-	(PARAM_USERID, "ユーザーID", ApplicationCommandOptionType::String),
-	(PARAM_NAME, "登録名", ApplicationCommandOptionType::String)
+const PARAMS: [(&str, &str, ApplicationCommandOptionType, bool); 2] = [
+	(PARAM_USERID, "ユーザーID", ApplicationCommandOptionType::String, true),
+	(PARAM_NAME, "登録名", ApplicationCommandOptionType::String, true)
 ];
 
 pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, command_args: &ApplicationCommandInteractionDataOption) {
@@ -320,13 +320,14 @@ pub fn command_build(option: &mut CreateApplicationCommandOption) -> &mut Create
 		.description("サブアカウントの承認申請をします")
 		.kind(ApplicationCommandOptionType::SubCommand);
 
-	for (name, desc, option_type) in &PARAMS {
+	for (name, desc, option_type, req) in &PARAMS {
 		option
 			.create_sub_option(|param_option| {
 				param_option
 					.name(name)
 					.description(desc)
 					.kind(*option_type)
+					.required(*req)
 			});
 	}
 

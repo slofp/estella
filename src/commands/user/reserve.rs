@@ -19,12 +19,12 @@ const PARAM_NAME: &str = "name";
 const PARAM_REASON: &str = "reason";
 
 /*
-Paramsは値名→説明→型定義で構成されています
+Paramsは値名→説明→型定義→必須で構成されています
 */
-const PARAMS: [(&str, &str, ApplicationCommandOptionType); 3] = [
-	(PARAM_USERID, "ユーザーID", ApplicationCommandOptionType::String),
-	(PARAM_NAME, "登録名", ApplicationCommandOptionType::String),
-	(PARAM_REASON, "登録理由", ApplicationCommandOptionType::String),
+const PARAMS: [(&str, &str, ApplicationCommandOptionType, bool); 3] = [
+	(PARAM_USERID, "ユーザーID", ApplicationCommandOptionType::String, true),
+	(PARAM_NAME, "登録名", ApplicationCommandOptionType::String, true),
+	(PARAM_REASON, "登録理由", ApplicationCommandOptionType::String, false),
 ];
 
 pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, command_args: &ApplicationCommandInteractionDataOption) {
@@ -341,13 +341,14 @@ pub fn command_build(option: &mut CreateApplicationCommandOption) -> &mut Create
 		.description("ユーザー登録を予約します")
 		.kind(ApplicationCommandOptionType::SubCommand);
 
-	for (name, desc, option_type) in &PARAMS {
+	for (name, desc, option_type, req) in &PARAMS {
 		option
 			.create_sub_option(|param_option| {
 				param_option
 					.name(name)
 					.description(desc)
 					.kind(*option_type)
+					.required(*req)
 			});
 	}
 
