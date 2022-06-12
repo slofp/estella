@@ -31,6 +31,13 @@ pub async fn get_pending_account(guild_id: u64, uid: u64, client: &Pool<MySql>) 
 		.fetch_one(client).await
 }
 
+pub async fn get_pending_account_from_message_id(guild_id: u64, message_id: u64, client: &Pool<MySql>) -> Result<account::Pending, Error> {
+	sqlx::query_as::<_, account::Pending>("select * from pending_account where guild_id = ? and message_id = ?")
+		.bind(guild_id)
+		.bind(message_id)
+		.fetch_one(client).await
+}
+
 pub async fn get_all_main_pending_account(client: &Pool<MySql>) -> Result<Vec<account::Pending>, Error> {
 	sqlx::query_as::<_, account::Pending>("select * from pending_account where account_type = 1")
 		.fetch_all(client).await

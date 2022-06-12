@@ -4,10 +4,10 @@ use serenity::client::{Context, EventHandler};
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::guild::Member;
-use serenity::model::id::GuildId;
+use serenity::model::id::{ChannelId, GuildId, MessageId};
 use serenity::model::interactions::Interaction;
 use serenity::model::prelude::User;
-use crate::events::{interaction_event, member_add_event, member_remove_event, message_event, ready_event};
+use crate::events::{interaction_event, member_add_event, member_remove_event, message_event, message_remove_event, ready_event};
 
 pub struct Router;
 
@@ -41,5 +41,11 @@ impl EventHandler for Router {
 		info!("Message Interaction created event start");
 		interaction_event::execute(ctx, interaction).await;
 		info!("Message Interaction created event end");
+	}
+
+	async fn message_delete(&self, ctx: Context, channel_id: ChannelId, deleted_message_id: MessageId, guild_id: Option<GuildId>) {
+		info!("Message removed event start");
+		message_remove_event::execute(ctx, channel_id, deleted_message_id, guild_id).await;
+		info!("Message removed event end");
 	}
 }
