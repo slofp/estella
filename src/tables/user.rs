@@ -1,5 +1,5 @@
 #[derive(sqlx::FromRow)]
 pub struct Data {
-	uid: u64,
-	glacialeur: Option<String>
+	pub(crate) uid: u64,
+	pub(crate) glacialeur: Option<String>
 }

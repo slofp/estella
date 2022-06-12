@@ -7,7 +7,8 @@ use serenity::model::id::{CommandId, GuildId};
 use sqlx::Row;
 use crate::{commands, exit, STATIC_COMPONENTS};
 use crate::tables::account;
-use crate::tables::quaryfn::{init_guild_config, insert_main_account_manual, insert_sub_account};
+use crate::tables::quaryfn::{init_guild_config, init_user_data, insert_main_account_manual, insert_sub_account};
+use crate::utils::glacialeur;
 
 /*#[derive(sqlx::FromRow)]
 struct UserData {
@@ -121,10 +122,14 @@ async fn insert(ctx: &Context, message: Message) {
 		is_sc: message_vec[3].parse().expect("Coundnt parse is_sc"),
 		is_leaved: message_vec[4].parse().expect("Coundnt parse is_leaved")
 	};
+	let g_str = glacialeur::generate(insert_data.uid, insert_data.version, insert_data.join_date.timestamp() - message.guild_id.unwrap().created_at().timestamp());
 
 	let lsc = STATIC_COMPONENTS.lock().await;
 	let mysql_client = lsc.get_sql();
-	if let Err(error) = insert_main_account_manual(&insert_data, mysql_client).await {
+	if let Err(error) = insert_main_account_manual(&insert_data, &mysql_client).await {
+		error!("DB Error: {:?}", error);
+	}
+	if let Err(error) = init_user_data(insert_data.uid, Some(g_str), mysql_client).await {
 		error!("DB Error: {:?}", error);
 	}
 	std::mem::drop(lsc);

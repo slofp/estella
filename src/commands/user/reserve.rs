@@ -1,5 +1,5 @@
 use std::num::ParseIntError;
-use chrono::{Duration, Local, Utc};
+use chrono::{Duration, Utc};
 use log::error;
 use serenity::builder::{CreateApplicationCommandOption, CreateComponents};
 use serenity::client::Context;
@@ -11,7 +11,7 @@ use crate::events::ready_event::ADD_PENDING_USERS;
 use crate::STATIC_COMPONENTS;
 use crate::tables::{account, quaryfn};
 use crate::tables::quaryfn::exist_user_id;
-use crate::utils::color;
+use crate::utils::{color, convert};
 use crate::utils::enums::AccountType;
 
 const PARAM_USERID: &str = "user_id";
@@ -228,7 +228,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 								.description("以下の内容で登録申請されました。内容を見てこのサーバーに入れたくないと判断した場合は「却下」ボタンを押してください")
 								.field("ユーザーID", &user_id, true)
 								.field("名前", &name, true)
-								.field("申請却下終了時刻", &end_vote_time.with_timezone(&Local).format("%Y/%m/%d %H:%M:%S"), true)
+								.field("申請却下終了時刻", convert::utc_to_local_format(&end_vote_time), true)
 								.color(color::normal_color());
 							if let Some(reason) = reason {
 								e

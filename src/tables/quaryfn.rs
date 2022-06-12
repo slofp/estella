@@ -1,6 +1,6 @@
 use log::error;
 use sqlx::{Error, MySql, Pool};
-use crate::tables::{account, guild};
+use crate::tables::{account, guild, user};
 
 /// select func
 
@@ -54,6 +54,12 @@ pub async fn get_main_sub_account(main_id: u64, client: &Pool<MySql>) -> Result<
 	sqlx::query_as::<_, account::Sub>("select * from sub_account where main_uid = ?")
 		.bind(main_id)
 		.fetch_all(client).await
+}
+
+pub async fn get_user_data(user_id: u64, client: &Pool<MySql>) -> Result<user::Data, Error> {
+	sqlx::query_as::<_, user::Data>("select * from user_data where uid = ?")
+		.bind(user_id)
+		.fetch_one(client).await
 }
 
 pub async fn exist_user_id(guild_id: u64, user_id: u64, client: &Pool<MySql>) -> bool {
