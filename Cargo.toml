@@ -36,7 +36,8 @@ features = [
 version = "0.10.10"
 
 [profile.release]
-debuginfo = 0
+strip = true
 codegen-units = 1
-opt-level = 3
-panic = "unwind"
+opt-level = "s"
+lto = true
+panic = "abort"
