@@ -37,8 +37,21 @@ async fn main() {
 
     let config_path = if is_debug { "./configs/config.yaml" } else { "./config.yaml" };
 
-    let config_string = fs::read_to_string(Path::new(config_path)).unwrap();
-    let config = serde_yaml::from_str::<ConfigData>(&config_string).unwrap();
+    let config_string = fs::read_to_string(Path::new(config_path));
+    if let Err(error) = config_string {
+        error!("Not found config file. Create './config.yaml' file...");
+        error!("{:?}", error);
+        return;
+    }
+    let config_string = config_string.unwrap();
+
+    let config = serde_yaml::from_str::<ConfigData>(&config_string);
+    if let Err(error) = config {
+        error!("Parse error. Please check if the description is correct.");
+        error!("{:?}", error);
+        return;
+    }
+    let config = config.unwrap();
 
     info!("Database Connecting...");
 
