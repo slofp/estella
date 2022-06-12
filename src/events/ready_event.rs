@@ -6,7 +6,7 @@ use serenity::builder::CreateEmbed;
 use serenity::client::Context;
 use serenity::http::Typing;
 use serenity::model::channel::{Embed, EmbedField};
-use serenity::model::gateway::Ready;
+use serenity::model::gateway::{Activity, Ready};
 use serenity::model::interactions::InteractionResponseType;
 use serenity::model::interactions::message_component::MessageComponentInteraction;
 use serenity::model::prelude::InteractionApplicationCommandCallbackDataFlags;
@@ -19,6 +19,9 @@ use crate::utils::{color, enums, glacialeur};
 use crate::utils::enums::{AccountType, ConfResponseType};
 
 pub async fn execute(ctx: Context, data_about_bot: Ready) {
+	ctx.dnd().await;
+	ctx.set_activity(Activity::playing("Starting...")).await;
+
 	for guild in data_about_bot.guilds {
 		let guild_id = guild.id();
 		debug!("id: {}", guild_id.as_u64() );
@@ -40,6 +43,9 @@ pub async fn execute(ctx: Context, data_about_bot: Ready) {
 			break;
 		}
 	}
+
+	ctx.online().await;
+	ctx.set_activity(Activity::playing("/estella")).await;
 
 	check_vote_task(ctx);
 }
