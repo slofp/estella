@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local, Utc};
 
 pub fn username(name: String, discriminator: u16) -> String {
-	format!("{}#{}", name, discriminator)
+	format!("{}#{:04}", name, discriminator)
 }
 
 pub fn utc_to_local_format(time: &DateTime<Utc>) -> String {
