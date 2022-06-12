@@ -1,3 +1,4 @@
+use log::error;
 use sqlx::{Error, MySql, Pool};
 use crate::tables::{account, guild};
 
@@ -53,6 +54,31 @@ pub async fn get_main_sub_account(main_id: u64, client: &Pool<MySql>) -> Result<
 	sqlx::query_as::<_, account::Sub>("select * from sub_account where main_uid = ?")
 		.bind(main_id)
 		.fetch_all(client).await
+}
+
+pub async fn exist_user_id(guild_id: u64, user_id: u64, client: &Pool<MySql>) -> bool {
+	let join_task = tokio::join!(
+		get_main_account(guild_id, user_id, &client),
+		get_sub_account(guild_id, user_id, &client),
+		get_confirmed_account(guild_id, user_id, &client),
+		get_pending_account(guild_id, user_id, &client)
+	);
+
+	if let Err(error) = join_task.0 {
+		error!("DB Error: {:?}", error);
+		if let Err(error) = join_task.1 {
+			error!("DB Error: {:?}", error);
+			if let Err(error) = join_task.2 {
+				error!("DB Error: {:?}", error);
+				if let Err(error) = join_task.3 {
+					error!("DB Error: {:?}", error);
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 /// insert func

@@ -8,6 +8,7 @@ use serenity::model::interactions::{InteractionApplicationCommandCallbackDataFla
 use serenity::model::interactions::message_component::ButtonStyle;
 use crate::STATIC_COMPONENTS;
 use crate::tables::{account, quaryfn};
+use crate::tables::quaryfn::exist_user_id;
 use crate::utils::color;
 use crate::utils::enums::AccountType;
 
@@ -88,32 +89,66 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 	let user_id: u64 = user_id_r.unwrap().unwrap();
 	let name: String = name.unwrap();
 
-	if let Err(error) = command.create_interaction_response(&ctx.http,
+	if let Err(error) = command.create_interaction_response(&ctx.http, |res| {
+		res
+			.kind(InteractionResponseType::ChannelMessageWithSource)
+			.interaction_response_data(|m| {
+				m
+					.create_embed(|e| {
+						e
+							.title("処理中...")
+							.description("このメッセージを削除しないでください")
+							.color(color::normal_color())
+					})
+					.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+			})
+	}).await {
+		error!("{}", error);
+		return;
+	}
+	let lsc = STATIC_COMPONENTS.lock().await;
+	let locked_db = lsc.get_sql();
+	let check_user = exist_user_id(*command.guild_id.unwrap().as_u64(), user_id, locked_db).await;
+	std::mem::drop(lsc);
+	if check_user {
+		if let Err(error) = command.edit_original_interaction_response(&ctx.http,
+			|res|
+				res
+					.set_embeds(vec![])
+					.create_embed(|e| {
+						e
+							.title("エラー")
+							.description("すでに申請されているか登録されています")
+							.color(color::failed_color())
+					})
+		).await {
+			error!("{}", error);
+		}
+		return;
+	}
+
+	if let Err(error) = command.edit_original_interaction_response(&ctx.http,
 		|res|
 			res
-				.kind(InteractionResponseType::ChannelMessageWithSource)
-				.interaction_response_data(|m| {
-					m
-						.create_embed(|e| {
-							e
-								.title("確認")
-								.description("以下の内容で申請します")
-								.field("ユーザーID", &user_id, true)
-								.field("名前", &name, true)
-								.color(color::normal_color())
-						})
-						.components(|com| {
-							com.create_action_row(|ar| {
-								ar
-									.create_button(|b| {
-										b.custom_id(format!("ok_{}", &user_id)).style(ButtonStyle::Success).label("OK")
-									})
-									.create_button(|b| {
-										b.custom_id(format!("cancel_{}", &user_id)).style(ButtonStyle::Danger).label("キャンセル")
-									})
+				.set_embeds(vec![])
+				.create_embed(|e| {
+					e
+						.title("確認")
+						.description("以下の内容で申請します")
+						.field("ユーザーID", &user_id, true)
+						.field("名前", &name, true)
+						.color(color::normal_color())
+				})
+				.components(|com| {
+					com.create_action_row(|ar| {
+						ar
+							.create_button(|b| {
+								b.custom_id(format!("ok_{}", &user_id)).style(ButtonStyle::Success).label("OK")
 							})
-						})
-						.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+							.create_button(|b| {
+								b.custom_id(format!("cancel_{}", &user_id)).style(ButtonStyle::Danger).label("キャンセル")
+							})
+					})
 				})
 	).await {
 		error!("{}", error);
