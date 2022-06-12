@@ -92,7 +92,10 @@ async fn insert_sub(ctx: &Context, message: Message) {
 
 	let lsc = STATIC_COMPONENTS.lock().await;
 	let mysql_client = lsc.get_sql();
-	if let Err(error) = insert_sub_account(&insert_data, mysql_client).await {
+	if let Err(error) = insert_sub_account(&insert_data, &mysql_client).await {
+		error!("DB Error: {:?}", error);
+	}
+	if let Err(error) = init_user_data(insert_data.uid, None, mysql_client).await {
 		error!("DB Error: {:?}", error);
 	}
 	std::mem::drop(lsc);
