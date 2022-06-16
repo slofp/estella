@@ -49,8 +49,8 @@ pub async fn execute(ctx: Context, message: Message) {
 		// estella.insert (uid) (name) (version) (is_sc) (is_leave)
 		insert(&ctx, message).await;
 	}
-	else if message.content.starts_with("estella.insert_sub") {
-		// estella.insert_sub (uid) (name) (main_uid)
+	else if message.content.starts_with("estella.sub_insert") {
+		// estella.sub_insert (uid) (name) (main_uid)
 		insert_sub(&ctx, message).await;
 	}
 }
@@ -66,7 +66,7 @@ async fn message_log(message: &Message, cache: Arc<Cache>) {
 }
 
 async fn insert_sub(ctx: &Context, message: Message) {
-	let message_rep = message.content.replace("estella.insert_sub", "");
+	let message_rep = message.content.replace("estella.sub_insert", "");
 	let message_split = message_rep.trim().split(' ');
 	let message_vec: Vec<&str> = message_split.collect::<Vec<&str>>();
 
