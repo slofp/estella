@@ -6,6 +6,14 @@ Version number are changed in accordance with the [Semantic Versioning Specifica
 
 ***
 
+## [1.0.1](https://github.com/Fairy-Phy/estella/tree/1.0.1) - 2022-06-16
+
+### Fixed
+
+* Fix debug command bug: `estella.insert_sub`
+
+  Change to `estella.sub_insert`
+
 ## [1.0.0](https://github.com/Fairy-Phy/estella/tree/1.0.0) - 2022-06-12
 
 ### Added
