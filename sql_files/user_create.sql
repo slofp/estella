@@ -1,6 +1,6 @@
 -- normal user create
 create user '@user'@'@host' identified by '@pass';
-grant all on db.* to '@user'@'@host'
+grant all on db.* to '@user'@'@host';
 
 -- placeholder user create ?
 set @user = 'username', ...;

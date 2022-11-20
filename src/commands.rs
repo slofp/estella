@@ -9,6 +9,7 @@ mod version;
 mod user;
 mod ping;
 mod config;
+mod mails;
 
 async fn root_commands_route(ctx: Context, command: ApplicationCommandInteraction) {
 	if command.data.options.len() != 1 {
@@ -22,6 +23,7 @@ async fn root_commands_route(ctx: Context, command: ApplicationCommandInteractio
 		"version" => version::execute(ctx, command).await,
 		"config" => config::execute(ctx, command).await,
 		"user" => user::commands_route(ctx, &command, sub_command).await,
+		"mails" => mails::commands_route(ctx, &command, sub_command).await,
 		_ => error!("No Exist Command!")
 	};
 }
@@ -74,6 +76,7 @@ fn root_command_build(command: &mut CreateApplicationCommand) -> &mut CreateAppl
 		.create_option(user::commands_build)
 		.create_option(ping::command_build)
 		.create_option(config::command_build)
+		.create_option(mails::commands_build)
 }
 
 pub fn app_commands_build(commands: &mut CreateApplicationCommands) -> &mut CreateApplicationCommands {
