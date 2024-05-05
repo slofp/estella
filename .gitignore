@@ -1,3 +1,4 @@
 /target
 /configs/config.yaml
 /logs
+.env
