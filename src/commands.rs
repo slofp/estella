@@ -43,7 +43,8 @@ pub async fn interaction_route(ctx: Context, command: ApplicationCommandInteract
 		_ => error!("No Exist Command!")
 	}
 
-	/*if let Err(error) = command.create_interaction_response(&ctx.http,
+	/* edit時のボタン追加コード？
+	if let Err(error) = command.create_interaction_response(&ctx.http,
 		|res|
 			res
 				.kind(InteractionResponseType::DeferredChannelMessageWithSource)
