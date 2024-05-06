@@ -1,16 +1,10 @@
 use std::num::ParseIntError;
 use log::error;
-use serenity::builder::CreateApplicationCommandOption;
 use serenity::client::Context;
 use serenity::model::id::ChannelId;
-use serenity::model::interactions::application_command::{ApplicationCommandInteraction, ApplicationCommandInteractionDataOption, ApplicationCommandOptionType};
-use serenity::model::interactions::{InteractionApplicationCommandCallbackDataFlags, InteractionResponseType};
-use serenity::model::interactions::message_component::ButtonStyle;
 use crate::STATIC_COMPONENTS;
-use crate::tables::{account, quaryfn};
-use crate::tables::quaryfn::exist_user_id;
 use crate::utils::color;
-use crate::utils::enums::AccountType;
+use entity::enums::AccountType;
 
 const PARAM_USERID: &str = "user_id";
 const PARAM_NAME: &str = "name";
@@ -107,7 +101,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 		return;
 	}
 	let lsc = STATIC_COMPONENTS.lock().await;
-	let locked_db = lsc.get_sql();
+	let locked_db = lsc.get_sql_client();
 	let check_user = exist_user_id(*command.guild_id.unwrap().as_u64(), user_id, locked_db).await;
 	std::mem::drop(lsc);
 	if check_user {
@@ -192,7 +186,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 		}
 
 		let lsc = STATIC_COMPONENTS.lock().await;
-		let locked_db = lsc.get_sql();
+		let locked_db = lsc.get_sql_client();
 		if command.guild_id.is_none() {
 			error!("Should not occur error: GuildID is none");
 			return;

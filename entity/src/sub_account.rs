@@ -57,4 +57,11 @@ impl Related<super::guild_config::Entity> for Entity {
     }
 }
 
+impl Related<super::main_account::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::MainAccount3.def()
+    }
+
+}
+
 impl ActiveModelBehavior for ActiveModel {}

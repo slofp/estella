@@ -1,17 +1,18 @@
+use std::any::Any;
 use log::{debug, info};
+use serenity::all::Interaction;
 use serenity::client::Context;
-use serenity::model::interactions::Interaction;
 use crate::commands;
 use crate::events::ready_event::{conf_process, conf_result_send_message, reject_vote_process};
 use crate::utils::enums::ConfResponseType;
 
 pub async fn execute(ctx: Context, interaction: Interaction) {
 	debug!("interaction: {:#?}", interaction);
-	if let Interaction::ApplicationCommand(command) = interaction {
+	if let Interaction::Command(command) = interaction {
 		commands::interaction_route(ctx, command).await;
 	}
-	else if let Interaction::MessageComponent(mc) = interaction {
-		debug!("\nmcID: {}\nmcType: {:?}\nmcCustomID: {}", mc.id, mc.data.component_type, mc.data.custom_id);
+	else if let Interaction::Component(mc) = interaction {
+		debug!("\nmcID: {}\nmcType: {:?}\nmcCustomID: {}", mc.id, mc.data.kind, mc.data.custom_id);
 		if mc.data.custom_id.starts_with("reject") {
 			let clone_custom_id = mc.data.custom_id.clone();
 			let split_custom_id: Vec<&str> = clone_custom_id.split("_").collect();

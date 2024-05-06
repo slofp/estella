@@ -1,17 +1,18 @@
 mod configs;
 mod utils;
 mod events;
-mod tables;
 mod commands;
+mod command_define;
 
 use std::fs;
 use std::path::Path;
 use log::{debug, error, info};
 use once_cell::sync::Lazy;
+use sea_orm::Database;
+use serenity::all::ApplicationId;
 use serenity::Client;
-use serenity::client::bridge::gateway::{GatewayIntents};
 use serenity::framework::StandardFramework;
-use sqlx::mysql::MySqlPoolOptions;
+use serenity::prelude::GatewayIntents;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use crate::configs::ConfigData;
@@ -55,8 +56,7 @@ async fn main() {
 
     info!("Database Connecting...");
 
-    let mysql_client = MySqlPoolOptions::new()
-        .connect(config.get_db_url().as_str()).await;
+    let mysql_client = Database::connect(config.get_db_url().as_str()).await;
 
     if let Err(error) = mysql_client {
         error!("Database connecting error: {:?}", error);
@@ -157,12 +157,9 @@ fn init_logger(is_debug: bool) -> Result<(), fern::InitError> {
 
 async fn create_client(config: &ConfigData) -> Client {
     let token = config.get_token();
-    let framework = StandardFramework::new();
-    Client::builder(token)
-        .intents(GatewayIntents::all())
-        .framework(framework)
+    Client::builder(token, GatewayIntents::all())
         .event_handler(Router)
-        .application_id(*config.get_bot_id())
+        .application_id(ApplicationId::from(*config.get_bot_id()))
         .await
         .expect("Erred at client")
 }
@@ -183,15 +180,18 @@ fn start_signal() -> JoinHandle<()> {
 
 pub async fn exit(at_exit: bool) {
     let lsc = STATIC_COMPONENTS.lock().await;
-    let mut locked_shardmanager = lsc.get_sm().lock().await;
-    locked_shardmanager.shutdown_all().await;
+    let mut locked_shard_manager = lsc.get_shard_manager();
+    locked_shard_manager.shutdown_all().await;
 
     info!("Exiting...");
 
-    while locked_shardmanager.shards_instantiated().await.len() != 0 { }
+    while locked_shard_manager.shards_instantiated().await.len() != 0 { }
     info!("Bot logged out.");
 
-    lsc.get_sql().close().await;
+    let res = lsc.get_sql_client().to_owned().close().await;
+    if let Err(e) = res {
+        error!("Database disconnect error: {:?}", e);
+    }
     info!("Database closed.");
 
     if at_exit { std::process::exit(0); }

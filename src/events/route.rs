@@ -1,11 +1,11 @@
 use log::info;
+use serenity::all::Interaction;
 use serenity::async_trait;
 use serenity::client::{Context, EventHandler};
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::guild::Member;
 use serenity::model::id::{ChannelId, GuildId, MessageId};
-use serenity::model::interactions::Interaction;
 use serenity::model::prelude::User;
 use crate::events::{interaction_event, member_add_event, member_remove_event, message_event, message_remove_event, ready_event};
 
@@ -13,8 +13,9 @@ pub struct Router;
 
 #[async_trait]
 impl EventHandler for Router {
-	async fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, new_member: Member) {
+	async fn guild_member_addition(&self, ctx: Context, new_member: Member) {
 		info!("Guild Member Add event start");
+		let guild_id = new_member.guild_id.clone();
 		member_add_event::execute(ctx, guild_id, new_member).await;
 		info!("Guild Member Add event end");
 	}
@@ -31,6 +32,12 @@ impl EventHandler for Router {
 		info!("Message created event end");
 	}
 
+	async fn message_delete(&self, ctx: Context, channel_id: ChannelId, deleted_message_id: MessageId, guild_id: Option<GuildId>) {
+		info!("Message removed event start");
+		message_remove_event::execute(ctx, channel_id, deleted_message_id, guild_id).await;
+		info!("Message removed event end");
+	}
+
 	async fn ready(&self, ctx: Context, data_about_bot: Ready) {
 		info!("Ready event start");
 		ready_event::execute(ctx, data_about_bot).await;
@@ -41,11 +48,5 @@ impl EventHandler for Router {
 		info!("Message Interaction created event start");
 		interaction_event::execute(ctx, interaction).await;
 		info!("Message Interaction created event end");
-	}
-
-	async fn message_delete(&self, ctx: Context, channel_id: ChannelId, deleted_message_id: MessageId, guild_id: Option<GuildId>) {
-		info!("Message removed event start");
-		message_remove_event::execute(ctx, channel_id, deleted_message_id, guild_id).await;
-		info!("Message removed event end");
 	}
 }

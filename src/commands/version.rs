@@ -1,8 +1,7 @@
 use log::error;
-use serenity::builder::CreateApplicationCommandOption;
+use serenity::all::{CommandInteraction, CommandOptionType};
+use serenity::builder::CreateCommandOption;
 use serenity::client::Context;
-use serenity::model::interactions::application_command::{ApplicationCommandInteraction, ApplicationCommandOptionType};
-use serenity::model::interactions::InteractionResponseType;
 use crate::utils::color;
 
 const PROJECT_NAME: &'static str = env!("CARGO_PKG_NAME");
@@ -14,7 +13,7 @@ fn get_project_name() -> String {
 	return p_name_vec.iter().collect();
 }
 
-pub async fn execute(ctx: Context, command: ApplicationCommandInteraction) {
+pub async fn execute(ctx: Context, command: CommandInteraction) {
 	if let Err(error) = command.create_interaction_response(&ctx.http,
 		|res|
 			res
@@ -34,9 +33,10 @@ pub async fn execute(ctx: Context, command: ApplicationCommandInteraction) {
 	}
 }
 
-pub fn command_build(option: &mut CreateApplicationCommandOption) -> &mut CreateApplicationCommandOption {
-	option
-		.name("version")
-		.description("Estellaのバージョンを表示します")
-		.kind(ApplicationCommandOptionType::SubCommand)
+pub fn command_build() -> CreateCommandOption {
+	CreateCommandOption::new(
+		CommandOptionType::SubCommand,
+		"version",
+		"Estellaのバージョンを表示します"
+	)
 }

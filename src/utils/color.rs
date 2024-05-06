@@ -1,4 +1,4 @@
-use serenity::utils::Color;
+use serenity::model::colour::Color;
 
 const SUCCESS:  u32 = 0x00B06B;
 const FAILED:   u32 = 0xFF4B00;

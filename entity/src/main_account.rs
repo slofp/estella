@@ -25,11 +25,21 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     GuildConfig,
+    #[sea_orm(
+        has_many = "super::sub_account::Entity"
+    )]
+    SubAccount,
 }
 
 impl Related<super::guild_config::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::GuildConfig.def()
+    }
+}
+
+impl Related<super::sub_account::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::SubAccount.def()
     }
 }
 

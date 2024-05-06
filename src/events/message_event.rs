@@ -1,13 +1,13 @@
 use std::sync::Arc;
 use log::{debug, error, info};
+use sea_orm::{ActiveModelTrait, EntityTrait, IntoActiveModel, PaginatorTrait};
+use serenity::all::CacheHttp;
 use serenity::client::{Cache, Context};
 use serenity::http::Http;
 use serenity::model::channel::Message;
 use serenity::model::id::{CommandId, GuildId};
-use sqlx::Row;
 use crate::{commands, exit, STATIC_COMPONENTS};
-use crate::tables::account;
-use crate::tables::quaryfn::{init_guild_config, init_user_data, insert_main_account_manual, insert_sub_account};
+use crate::utils::convert::format_discord_username;
 use crate::utils::glacialeur;
 
 /*#[derive(sqlx::FromRow)]
@@ -55,11 +55,10 @@ pub async fn execute(ctx: Context, message: Message) {
 	}
 }
 
-async fn message_log(message: &Message, cache: Arc<Cache>) {
-	info!("user: {}#{:04}\nChannel: {}\nkind: {:?}\ntext: {}\ncreate date: {}",
-		message.author.name,
-		message.author.discriminator,
-		if message.is_private() { "DM".to_string() } else { message.channel_id.name(cache).await.unwrap_or_else(|| "None".to_string()) },
+async fn message_log(message: &Message, cache: impl CacheHttp) {
+	info!("user: {}\nChannel: {}\nkind: {:?}\ntext: {}\ncreate date: {}",
+		format_discord_username(&message.author),
+		if message.is_private() { "DM".to_string() } else { message.channel_id.name(cache).await.unwrap_or_else(|_| "None".to_string()) },
 		message.kind,
 		message.content,
 		message.timestamp);
@@ -80,7 +79,7 @@ async fn insert_sub(ctx: &Context, message: Message) {
 	let user_id: u64 = message_vec[0].parse().expect("Coundnt parse uid");
 	let user_data = message.guild_id.unwrap().member(&ctx.http, user_id).await.unwrap();
 
-	let insert_data = account::Sub {
+	let insert_data = entity::SubAccount {
 		uid: user_id,
 		name: message_vec[1].to_string(),
 		guild_id: *message.guild_id.unwrap().as_u64(),
@@ -91,11 +90,19 @@ async fn insert_sub(ctx: &Context, message: Message) {
 	};
 
 	let lsc = STATIC_COMPONENTS.lock().await;
-	let mysql_client = lsc.get_sql();
-	if let Err(error) = insert_sub_account(&insert_data, &mysql_client).await {
+	let mysql_client = lsc.get_sql_client();
+	let insert_res = insert_data.into_active_model().insert(mysql_client).await;
+	if let Err(error) = insert_res {
 		error!("DB Error: {:?}", error);
+		return;
 	}
-	if let Err(error) = init_user_data(insert_data.uid, None, mysql_client).await {
+	let insert_data = insert_res.unwrap();
+
+	let user_data = entity::UserData {
+		uid: insert_data.uid,
+		glacialeur: None
+	};
+	if let Err(error) = user_data.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);
 	}
 	std::mem::drop(lsc);
@@ -116,23 +123,31 @@ async fn insert(ctx: &Context, message: Message) {
 	let user_id: u64 = message_vec[0].parse().expect("Coundnt parse uid");
 	let user_data = message.guild_id.unwrap().member(&ctx.http, user_id).await.unwrap();
 
-	let insert_data = account::Main {
+	let insert_data = entity::MainAccount {
 		uid: user_id,
 		name: message_vec[1].to_string(),
 		guild_id: *message.guild_id.unwrap().as_u64(),
 		version: message_vec[2].parse().expect("Coundnt parse version"),
 		join_date: user_data.joined_at.unwrap_or(message.guild_id.unwrap().created_at()),
-		is_sc: message_vec[3].parse().expect("Coundnt parse is_sc"),
+		is_server_creator: message_vec[3].parse().expect("Coundnt parse is_server_creator"),
 		is_leaved: message_vec[4].parse().expect("Coundnt parse is_leaved")
 	};
 	let g_str = glacialeur::generate(insert_data.uid, insert_data.version, insert_data.join_date.timestamp() - message.guild_id.unwrap().created_at().timestamp());
 
 	let lsc = STATIC_COMPONENTS.lock().await;
-	let mysql_client = lsc.get_sql();
-	if let Err(error) = insert_main_account_manual(&insert_data, &mysql_client).await {
+	let mysql_client = lsc.get_sql_client();
+	let insert_res = insert_data.into_active_model().insert(mysql_client).await;
+	if let Err(error) = insert_res {
 		error!("DB Error: {:?}", error);
+		return;
 	}
-	if let Err(error) = init_user_data(insert_data.uid, Some(g_str), mysql_client).await {
+	let insert_data = insert_res.unwrap();
+
+	let user_data = entity::UserData {
+		uid: insert_data.uid,
+		glacialeur: Some(g_str)
+	};
+	if let Err(error) = user_data.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);
 	}
 	std::mem::drop(lsc);
@@ -140,8 +155,13 @@ async fn insert(ctx: &Context, message: Message) {
 
 async fn guild_init(guild_id: u64) {
 	let lsc = STATIC_COMPONENTS.lock().await;
-	let mysql_client = lsc.get_sql();
-	if let Err(error) = init_guild_config(guild_id, mysql_client).await {
+	let mysql_client = lsc.get_sql_client();
+
+	let guild_config = entity::GuildConfig {
+		uid: guild_id,
+		..Default::default()
+	};
+	if let Err(error) = guild_config.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);
 	}
 	std::mem::drop(lsc);
@@ -149,10 +169,9 @@ async fn guild_init(guild_id: u64) {
 
 async fn test() {
 	let lsc = STATIC_COMPONENTS.lock().await;
-	let mysql_client = lsc.get_sql();
+	let mysql_client = lsc.get_sql_client();
 
-	let res = sqlx::query("SELECT COUNT(*) as cnt FROM userdata")
-		.fetch_one(mysql_client).await;
+	let res = entity::UserDataBehavior::find().count(mysql_client).await;
 
 	std::mem::drop(lsc);
 
@@ -216,7 +235,7 @@ async fn create(message: Message, http: &Arc<Http>) {
 
 async fn create_command(guild: GuildId, http: &Arc<Http>) -> Result<CommandId, serenity::Error> {
 	let app_commands =
-		guild.set_application_commands(http, commands::app_commands_build).await;
+		guild.create_command(http, commands::app_commands_build()).await;
 
 	debug!("adding response: {:#?}", app_commands);
 	return match app_commands {

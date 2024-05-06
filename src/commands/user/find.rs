@@ -1,14 +1,11 @@
 use std::num::ParseIntError;
 use log::error;
-use serenity::builder::CreateApplicationCommandOption;
+use serenity::all::CommandInteraction;
 use serenity::client::Context;
-use serenity::model::interactions::application_command::{ApplicationCommandInteraction, ApplicationCommandInteractionDataOption, ApplicationCommandOptionType};
-use serenity::model::interactions::{InteractionApplicationCommandCallbackDataFlags, InteractionResponseType};
 use crate::STATIC_COMPONENTS;
-use crate::tables::quaryfn::get_user_data;
 use crate::utils::{color, convert};
 use crate::utils::convert::utc_to_local_format;
-use crate::utils::enums::AccountType;
+use entity::enums::AccountType;
 
 const PARAM_USERID: &str = "user_id";
 
@@ -19,7 +16,7 @@ const PARAMS: [(&str, &str, ApplicationCommandOptionType, bool); 1] = [
 	(PARAM_USERID, "ユーザーID", ApplicationCommandOptionType::String, false)
 ];
 
-pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, command_args: &ApplicationCommandInteractionDataOption) {
+pub async fn execute(ctx: Context, command: &CommandInteraction, command_args: &ApplicationCommandInteractionDataOption) {
 	let mut user_id_o: Option<String> = None;
 
 	for option in &command_args.options {
@@ -62,7 +59,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 			let user_mem = user_mem.unwrap();
 
 			let lsc = STATIC_COMPONENTS.lock().await;
-			let locked_db = lsc.get_sql();
+			let locked_db = lsc.get_sql_client();
 			let user_data = get_user_data(user_id, locked_db).await;
 			std::mem::drop(lsc);
 			if let Err(error) = user_data {
@@ -72,7 +69,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 			else {
 				let user_data = user_data.unwrap();
 
-				if let Err(error) = command.create_interaction_response(&ctx.http, |cir| {
+				if let Err(error) = command.create_response(&ctx.http, |cir| {
 					cir
 						.kind(InteractionResponseType::ChannelMessageWithSource)
 						.interaction_response_data(|cird| {
@@ -81,7 +78,7 @@ pub async fn execute(ctx: Context, command: &ApplicationCommandInteraction, comm
 									cm
 										.title("ユーザー情報")
 										.field("ID", user_data.uid, true)
-										.field("名前", convert::username(user_mem.user.name.clone(), user_mem.user.discriminator), true)
+										.field("名前", convert::format_discord_username(user_mem.user.name.clone(), user_mem.user.discriminator), true)
 										.field("アカウント作成日", utc_to_local_format(&user_mem.user.created_at()), true)
 										.field("サーバー入鯖日", utc_to_local_format(&user_mem.joined_at.unwrap_or(command.guild_id.unwrap().created_at())), true)
 										.field("アカウントタイプ", (if user_data.glacialeur.is_none() { AccountType::Sub } else { AccountType::Main }).to_string(), true)

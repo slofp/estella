@@ -1,12 +1,7 @@
 use std::sync::Arc;
 use log::error;
-use serenity::builder::CreateApplicationCommandOption;
 use serenity::client::Context;
-use serenity::model::interactions::application_command::{ApplicationCommandInteraction, ApplicationCommandOptionType};
-use serenity::model::interactions::{InteractionApplicationCommandCallbackDataFlags, InteractionResponseType};
-use serenity::model::interactions::message_component::{ButtonStyle, MessageComponentInteraction};
 use crate::STATIC_COMPONENTS;
-use crate::tables::quaryfn::{update_guild_config_auth, update_guild_config_bot, update_guild_config_leave, update_guild_config_log, update_guild_config_white};
 use crate::utils::color;
 
 const MENU_PARAM_LC: &str = "log_channel";
@@ -237,7 +232,7 @@ async fn log_channel_config(ctx: &Context, command: &ApplicationCommandInteracti
 
 		error_message = None;
 		let lsc = STATIC_COMPONENTS.lock().await;
-		let locked_db = lsc.get_sql();
+		let locked_db = lsc.get_sql_client();
 		if let Err(error) = update_guild_config_log(*command.guild_id.unwrap().as_u64(), channel_id, locked_db).await {
 			error!("{:?}", error);
 			error_message = Some(format!("{:?}", error));
@@ -400,7 +395,7 @@ async fn auth_role_config(ctx: &Context, command: &ApplicationCommandInteraction
 
 		error_message = None;
 		let lsc = STATIC_COMPONENTS.lock().await;
-		let locked_db = lsc.get_sql();
+		let locked_db = lsc.get_sql_client();
 		if let Err(error) = update_guild_config_auth(*command.guild_id.unwrap().as_u64(), auth_id, locked_db).await {
 			error!("{:?}", error);
 			error_message = Some(format!("{:?}", error));
@@ -563,7 +558,7 @@ async fn bot_role_config(ctx: &Context, command: &ApplicationCommandInteraction,
 
 		error_message = None;
 		let lsc = STATIC_COMPONENTS.lock().await;
-		let locked_db = lsc.get_sql();
+		let locked_db = lsc.get_sql_client();
 		if let Err(error) = update_guild_config_bot(*command.guild_id.unwrap().as_u64(), bot_id, locked_db).await {
 			error!("{:?}", error);
 			error_message = Some(format!("{:?}", error));
@@ -671,7 +666,7 @@ async fn white_list_config(ctx: &Context, command: &ApplicationCommandInteractio
 
 		let mut error_message: Option<String> = None;
 		let lsc = STATIC_COMPONENTS.lock().await;
-		let locked_db = lsc.get_sql();
+		let locked_db = lsc.get_sql_client();
 		if let Err(error) = update_guild_config_white(*command.guild_id.unwrap().as_u64(), true, locked_db).await {
 			error!("{:?}", error);
 			error_message = Some(format!("{:?}", error));
@@ -711,7 +706,7 @@ async fn white_list_config(ctx: &Context, command: &ApplicationCommandInteractio
 
 		let mut error_message: Option<String> = None;
 		let lsc = STATIC_COMPONENTS.lock().await;
-		let locked_db = lsc.get_sql();
+		let locked_db = lsc.get_sql_client();
 		if let Err(error) = update_guild_config_white(*command.guild_id.unwrap().as_u64(), false, locked_db).await {
 			error!("{:?}", error);
 			error_message = Some(format!("{:?}", error));
@@ -817,7 +812,7 @@ async fn leave_ban_config(ctx: &Context, command: &ApplicationCommandInteraction
 
 		let mut error_message: Option<String> = None;
 		let lsc = STATIC_COMPONENTS.lock().await;
-		let locked_db = lsc.get_sql();
+		let locked_db = lsc.get_sql_client();
 		if let Err(error) = update_guild_config_leave(*command.guild_id.unwrap().as_u64(), true, locked_db).await {
 			error!("{:?}", error);
 			error_message = Some(format!("{:?}", error));
@@ -857,7 +852,7 @@ async fn leave_ban_config(ctx: &Context, command: &ApplicationCommandInteraction
 
 		let mut error_message: Option<String> = None;
 		let lsc = STATIC_COMPONENTS.lock().await;
-		let locked_db = lsc.get_sql();
+		let locked_db = lsc.get_sql_client();
 		if let Err(error) = update_guild_config_leave(*command.guild_id.unwrap().as_u64(), false, locked_db).await {
 			error!("{:?}", error);
 			error_message = Some(format!("{:?}", error));
