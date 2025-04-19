@@ -1,9 +1,12 @@
 use crate::command_define::{BaseCommand, BuildCommandOption, CommonCommandType};
 use crate::commands::ping::PingCommand;
+use config::ConfigCommand;
 use log::{debug, error};
 use serenity::all::{CommandDataOption, CommandDataOptionValue, CommandInteraction, CommandOptionType};
 use serenity::builder::CreateCommand;
 use serenity::client::Context;
+use user::UserCommands;
+use version::VersionCommand;
 use std::convert::Into;
 use std::sync::LazyLock;
 //use serenity::model::interactions::InteractionResponseType;
@@ -21,12 +24,23 @@ macro_rules! convert_command {
 	};
 }
 
+macro_rules! convert_sub_command {
+	($cmd: ident) => {
+		($cmd::new().to_box() as Box<dyn crate::command_define::SubCommand + Sync + Send>).into()
+	};
+}
+
 mod config;
 mod ping;
 mod user;
 mod version;
 
-static COMMANDS: LazyLock<Vec<CommonCommandType>> = LazyLock::new(|| vec![convert_command!(PingCommand)]);
+static COMMANDS: LazyLock<Vec<CommonCommandType>> = LazyLock::new(|| vec![
+	convert_command!(PingCommand),
+	convert_command!(ConfigCommand),
+	convert_sub_command!(UserCommands),
+	convert_command!(VersionCommand),
+]);
 
 async fn root_commands_route(ctx: Context, command: CommandInteraction) -> serenity::Result<()> {
 	if command.data.options.len() != 1 {
