@@ -11,34 +11,34 @@ use sha3::{Digest, Sha3_256};
 	8 => Estella
 */
 
-fn rotr16 (value: u16, shift: u16) -> u16 {
+fn rotr16(value: u16, shift: u16) -> u16 {
 	(value >> shift) | (value << (16 - shift))
 }
 
-fn rotl16 (value: u16, shift: u16) -> u16 {
+fn rotl16(value: u16, shift: u16) -> u16 {
 	(value << shift) | (value >> (16 - shift))
 }
 
-fn rotr8 (value: u8, shift: u8) -> u8 {
+fn rotr8(value: u8, shift: u8) -> u8 {
 	(value >> shift) | (value << (8 - shift))
 }
 
-fn rotl8 (value: u8, shift: u8) -> u8 {
+fn rotl8(value: u8, shift: u8) -> u8 {
 	(value << shift) | (value >> (8 - shift))
 }
 
-fn nxor16 (x: u16, y: u16) -> u16 {
+fn nxor16(x: u16, y: u16) -> u16 {
 	!(x ^ y)
 }
 
-fn nxor8 (x: u8, y: u8) -> u8 {
+fn nxor8(x: u8, y: u8) -> u8 {
 	!(x ^ y)
 }
 
 fn before_hash_id_to_bytes(id: u128) -> Vec<u8> {
 	let mut res = Vec::<u8>::new();
 	for i in (0..14).rev() {
-		res.push( ((id & (0xff << (i * 8))) >> (i * 8)).to_u8().unwrap());
+		res.push(((id & (0xff << (i * 8))) >> (i * 8)).to_u8().unwrap());
 	}
 
 	return res;
@@ -50,9 +50,7 @@ fn id_to_hash(id: u128) -> Vec<u16> {
 	let hash = hasher.finalize().to_vec();
 	let mut hash_block = Vec::<u16>::new();
 	for i in (0..hash.len()).step_by(2) {
-		hash_block.push(
-			(hash[i].to_u16().unwrap() << 8) | hash[i + 1].to_u16().unwrap()
-		);
+		hash_block.push((hash[i].to_u16().unwrap() << 8) | hash[i + 1].to_u16().unwrap());
 	}
 	return hash_block;
 }
@@ -62,13 +60,10 @@ fn gen_check_hash(id: u128) -> u16 {
 	let mut block = id_to_hash(id);
 
 	for i in 0..block.len() {
-		block[i] = nxor16(
-			rotr16(block[i], rb / 2),
-			rotl16(block[i], rb / 4)) ^ (block[i] >> ((rb / 8) * 2)
-		);
+		block[i] = nxor16(rotr16(block[i], rb / 2), rotl16(block[i], rb / 4)) ^ (block[i] >> ((rb / 8) * 2));
 		block[i] = nxor16(
 			rotl16(block[i], rb / 2) ^ rotr16(block[i], rb / 4),
-			block[i] << ((rb / 8) * 2)
+			block[i] << ((rb / 8) * 2),
 		);
 	}
 
@@ -95,13 +90,10 @@ fn gen_comp_disco_id(id: &u64) -> u8 {
 	}
 
 	for i in 0..block.len() {
-		block[i] = nxor8(
-			rotr8(block[i], rb / 2),
-			rotl8(block[i], rb / 4)) ^ (block[i] >> ((rb / 8) * 2)
-		);
+		block[i] = nxor8(rotr8(block[i], rb / 2), rotl8(block[i], rb / 4)) ^ (block[i] >> ((rb / 8) * 2));
 		block[i] = nxor8(
 			rotl8(block[i], rb / 2) ^ rotr8(block[i], rb / 4),
-			block[i] << ((rb / 8) * 2)
+			block[i] << ((rb / 8) * 2),
 		);
 	}
 
@@ -126,13 +118,8 @@ fn to_string_36(id: u64) -> String {
 	while num != 0 {
 		let num_mod = num % 36;
 		if num_mod >= 10 {
-			result.push(
-				std::char::from_u32(
-					('A' as u32) + num_mod.to_u32().unwrap() - 10
-				).unwrap()
-			);
-		}
-		else {
+			result.push(std::char::from_u32(('A' as u32) + num_mod.to_u32().unwrap() - 10).unwrap());
+		} else {
 			result.push(std::char::from_digit(num_mod.to_u32().unwrap(), 10).unwrap());
 		}
 		num /= 36;

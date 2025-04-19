@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct ConfigData {
@@ -9,7 +9,7 @@ pub struct ConfigData {
 	db_url: String,
 	db_username: String,
 	db_password: String,
-	db_database: String
+	db_database: String,
 }
 
 impl ConfigData {
@@ -26,6 +26,9 @@ impl ConfigData {
 	}
 
 	pub fn get_db_url(&self) -> String {
-		format!("mysql://{}:{}@{}/{}", self.db_username, self.db_password, self.db_url, self.db_database)
+		format!(
+			"mysql://{}:{}@{}/{}",
+			self.db_username, self.db_password, self.db_url, self.db_database
+		)
 	}
 }

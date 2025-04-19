@@ -1,21 +1,32 @@
-use std::convert::Into;
+use crate::command_define::{BaseCommand, BuildCommandOption, CommonCommandType};
+use crate::commands::ping::PingCommand;
 use log::{debug, error};
 use serenity::all::{CommandDataOption, CommandDataOptionValue, CommandInteraction, CommandOptionType};
 use serenity::builder::CreateCommand;
 use serenity::client::Context;
-use crate::command_define::{BaseCommand, CommonCommandType};
-use crate::commands::ping::PingCommand;
+use std::convert::Into;
+use std::sync::LazyLock;
 //use serenity::model::interactions::InteractionResponseType;
 //use serenity::model::interactions::message_component::ButtonStyle;
 
-mod version;
-mod user;
-mod ping;
-mod config;
+macro_rules! extract_enum {
+	($value: expr, $type: path) => {
+		if let $type(val) = $value { Some(val) } else { None }.unwrap()
+	};
+}
 
-static COMMANDSS: Vec<CommonCommandType> = vec![
-	PingCommand::new().into()
-];
+macro_rules! convert_command {
+	($cmd: ident) => {
+		($cmd::new().to_box() as Box<dyn crate::command_define::Command + Sync + Send>).into()
+	};
+}
+
+mod config;
+mod ping;
+mod user;
+mod version;
+
+static COMMANDS: LazyLock<Vec<CommonCommandType>> = LazyLock::new(|| vec![convert_command!(PingCommand)]);
 
 async fn root_commands_route(ctx: Context, command: CommandInteraction) -> serenity::Result<()> {
 	if command.data.options.len() != 1 {
@@ -28,29 +39,31 @@ async fn root_commands_route(ctx: Context, command: CommandInteraction) -> seren
 	let sub_command_kind = sub_command.kind();
 	let sub_command_name = sub_command.name.to_string();
 	if matches!(sub_command_kind, CommandOptionType::SubCommand) {
-		for sub_cmd in COMMANDSS {
+		for sub_cmd in &*COMMANDS {
 			if matches!(sub_cmd, CommonCommandType::SubCommand(_)) {
 				continue;
 			}
 			if let CommonCommandType::Command(cmd) = sub_cmd {
 				if cmd.get_name() == sub_command_name {
-					let CommandDataOptionValue::SubCommand(sub_command_value) = sub_command.to_owned().value;
+					let sub_command_value =
+						extract_enum!(sub_command.to_owned().value, CommandDataOptionValue::SubCommand);
 					cmd.execute(ctx, command, sub_command_value).await?;
 					executed = true;
 					break;
 				}
 			}
 		}
-	}
-	else if matches!(sub_command_kind, CommandOptionType::SubCommandGroup) {
-		for sub_cmd in COMMANDSS {
+	} else if matches!(sub_command_kind, CommandOptionType::SubCommandGroup) {
+		for sub_cmd in &*COMMANDS {
 			if matches!(sub_cmd, CommonCommandType::Command(_)) {
 				continue;
 			}
 			if let CommonCommandType::SubCommand(cmd) = sub_cmd {
 				if cmd.get_name() == sub_command_name {
-					let CommandDataOptionValue::SubCommandGroup(sub_command_value) = sub_command.to_owned().value;
-					cmd.commands_route(ctx, command, sub_command_value[0].to_owned()).await?;
+					let sub_command_value =
+						extract_enum!(sub_command.to_owned().value, CommandDataOptionValue::SubCommandGroup);
+					cmd.commands_route(ctx, command, sub_command_value[0].to_owned())
+						.await?;
 					executed = true;
 					break;
 				}
@@ -90,7 +103,7 @@ pub async fn interaction_route(ctx: Context, command: CommandInteraction) {
 		_ => {
 			error!("No Exist Command!");
 			Ok(())
-		}
+		},
 	};
 	if let Err(error) = res {
 		error!("{}", error);
@@ -123,14 +136,13 @@ pub async fn interaction_route(ctx: Context, command: CommandInteraction) {
 }
 
 fn root_command_build(command: CreateCommand) -> CreateCommand {
+	let mut command = command.name("estella").description("Estella Command Root");
+
+	for cmd in &*COMMANDS {
+		command = command.add_option(cmd.build_command_option());
+	}
+
 	command
-		.name("estella")
-		.description("Estella Command Root")
-		.add_option(version::command_build())
-		.add_option(user::commands_build())
-		.add_option(ping::command_build())
-		.add_option(config::command_build())
-		.add_option(mails::commands_build())
 }
 
 pub fn app_commands_build() -> CreateCommand {

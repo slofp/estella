@@ -2,7 +2,7 @@
 
 Invite control Discord Bot
 
-Discord bot made in Rust based on [Avespoir](https://github.com/Fairy-Phy/Avespoir)
+Discord bot made in Rust based on [Avespoir](https://github.com/slofp/Avespoir)
 
 ***
 
@@ -14,4 +14,4 @@ Therefore it is not made for public bots.
 
 Estella is licensed under the Apache License 2.0. Please see the license file for more information.
 
--> <https://github.com/Fairy-Phy/Estella/blob/master/LICENSE>
+-> <https://github.com/slofp/Estella/blob/master/LICENSE>

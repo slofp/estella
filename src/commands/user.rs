@@ -1,32 +1,39 @@
-use log::error;
-use serenity::all::{CommandDataOption, CommandInteraction, CommandOptionType, CreateCommandOption};
-use serenity::client::Context;
+use find::FindCommand;
+use reserve::ReserveCommand;
+use sub_application::SubApplicationCommand;
 
+use crate::command_define::{BaseCommand, CommonCommandType, SubCommand};
+
+mod find;
 mod reserve;
 mod sub_application;
-mod find;
 
-pub async fn commands_route(ctx: Context, command: &CommandInteraction, sub_command: &CommandDataOption) {
-	if sub_command.options.len() != 1 {
-		error!("Sub command option length is not 1.");
-		return;
-	}
-
-	let sub_sub_command: &CommandDataOption = &sub_command.options[0];
-	match sub_sub_command.name.as_str() {
-		"reserve" => reserve::execute(ctx, command, sub_sub_command).await,
-		"sub_application" => sub_application::execute(ctx, command, sub_sub_command).await,
-		"find" => find::execute(ctx, command, sub_sub_command).await,
-		_ => error!("No Exist Command!")
-	};
+pub struct UserCommands {
+	sub_commands: Vec<CommonCommandType>,
 }
 
-pub fn commands_build() -> CreateCommandOption {
-	CreateCommandOption::new()
-		.name("user")
-		.description("Estella User Commands")
-		.kind(CommandOptionType::SubCommandGroup)
-		.add_sub_option(reserve::command_build)
-		.create_sub_option(sub_application::command_build)
-		.create_sub_option(find::command_build)
+impl BaseCommand for UserCommands {
+	fn new() -> Self {
+		Self {
+			sub_commands: vec![
+				convert_command!(ReserveCommand),
+				convert_command!(SubApplicationCommand),
+				convert_command!(FindCommand),
+			],
+		}
+	}
+
+	fn get_name(&self) -> String {
+		"user".into()
+	}
+
+	fn get_description(&self) -> String {
+		"Estella User Commands".into()
+	}
+}
+
+impl SubCommand for UserCommands {
+	fn get_sub_commands(&self) -> &Vec<CommonCommandType> {
+		&self.sub_commands
+	}
 }

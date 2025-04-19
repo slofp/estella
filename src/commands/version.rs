@@ -1,42 +1,59 @@
-use log::error;
-use serenity::all::{CommandInteraction, CommandOptionType};
-use serenity::builder::CreateCommandOption;
-use serenity::client::Context;
+use crate::command_define::{BaseCommand, Command};
 use crate::utils::color;
+use serenity::all::{
+	CommandDataOption, CommandInteraction, CreateEmbed, CreateInteractionResponse,
+	CreateInteractionResponseMessage,
+};
+use serenity::async_trait;
+use serenity::client::Context;
 
 const PROJECT_NAME: &'static str = env!("CARGO_PKG_NAME");
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-fn get_project_name() -> String {
-	let mut p_name_vec: Vec<char> = PROJECT_NAME.chars().collect();
-	p_name_vec[0] = p_name_vec[0].to_ascii_uppercase();
-	return p_name_vec.iter().collect();
-}
+pub struct VersionCommand;
 
-pub async fn execute(ctx: Context, command: CommandInteraction) {
-	if let Err(error) = command.create_interaction_response(&ctx.http,
-		|res|
-			res
-				.kind(InteractionResponseType::ChannelMessageWithSource)
-				.interaction_response_data(|m| {
-					m
-						.create_embed(|e| {
-							e
-								.title("バージョン情報")
-								.description(format!("{} {}", get_project_name(), VERSION))
-								.color(color::normal_color())
-						})
-				})
-	).await {
-		error!("{}", error);
-		return;
+impl BaseCommand for VersionCommand {
+	fn new() -> Self {
+		Self {}
+	}
+
+	fn get_name(&self) -> String {
+		"version".into()
+	}
+
+	fn get_description(&self) -> String {
+		"Estellaのバージョンを表示します".into()
 	}
 }
 
-pub fn command_build() -> CreateCommandOption {
-	CreateCommandOption::new(
-		CommandOptionType::SubCommand,
-		"version",
-		"Estellaのバージョンを表示します"
-	)
+impl VersionCommand {
+	fn get_project_name(&self) -> String {
+		let mut p_name_vec: Vec<char> = PROJECT_NAME.chars().collect();
+		p_name_vec[0] = p_name_vec[0].to_ascii_uppercase();
+		return p_name_vec.iter().collect();
+	}
+}
+
+#[async_trait]
+impl Command for VersionCommand {
+	async fn execute(
+		&self,
+		ctx: Context,
+		command: CommandInteraction,
+		_: Vec<CommandDataOption>,
+	) -> serenity::Result<()> {
+		command
+			.create_response(
+				&ctx.http,
+				CreateInteractionResponse::Message(
+					CreateInteractionResponseMessage::new().add_embed(
+						CreateEmbed::new()
+							.title("バージョン情報")
+							.description(format!("{} {}", self.get_project_name(), VERSION))
+							.color(color::normal_color()),
+					),
+				),
+			)
+			.await
+	}
 }

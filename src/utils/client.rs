@@ -1,12 +1,12 @@
-use std::sync::Arc;
+use crate::ConfigData;
 use sea_orm::DatabaseConnection;
 use serenity::all::ShardManager;
-use crate::ConfigData;
+use std::sync::Arc;
 
 pub struct Components {
 	config: Option<ConfigData>,
 	mysql_client: Option<DatabaseConnection>,
-	cloned_shard_manager: Option<Arc<ShardManager>>
+	cloned_shard_manager: Option<Arc<ShardManager>>,
 }
 
 impl Components {
@@ -14,11 +14,16 @@ impl Components {
 		Components {
 			config: None,
 			mysql_client: None,
-			cloned_shard_manager: None
+			cloned_shard_manager: None,
 		}
 	}
 
-	pub fn sets(&mut self, config: ConfigData, mysql_client: DatabaseConnection, cloned_shard_manager: Arc<ShardManager>) {
+	pub fn sets(
+		&mut self,
+		config: ConfigData,
+		mysql_client: DatabaseConnection,
+		cloned_shard_manager: Arc<ShardManager>,
+	) {
 		self.config = Some(config);
 		self.mysql_client = Some(mysql_client);
 		self.cloned_shard_manager = Some(cloned_shard_manager);
