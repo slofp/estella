@@ -77,6 +77,11 @@ pub enum UserData {
 	// Column
 	Uid,
 	Glacialeur,
+
+	// 2025-06-02 added
+	CallName,
+	Gender,
+	LikabilityLevel,
 }
 
 #[derive(DeriveIden)]
