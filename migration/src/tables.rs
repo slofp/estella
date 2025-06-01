@@ -78,3 +78,24 @@ pub enum UserData {
 	Uid,
 	Glacialeur,
 }
+
+#[derive(DeriveIden)]
+pub enum Remind {
+	Table,
+
+	// Column
+	Id,
+	TaskName,
+	AuthorId,
+	AssigneesId,
+	RemindDate,
+}
+
+#[derive(DeriveIden)]
+pub enum RemindAssignee {
+	Table,
+
+	// Column
+	Id,
+	UserId,
+}

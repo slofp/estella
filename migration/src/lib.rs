@@ -7,6 +7,8 @@ mod m20240503_165935_create_table_sub_account;
 mod m20240503_165947_create_table_confirmed_account;
 mod m20240503_165956_create_table_pending_account;
 mod m20240503_170005_create_table_user_data;
+mod m20250525_112910_create_table_remind_assignee;
+mod m20250525_113749_create_table_remind;
 mod tables;
 
 pub struct Migrator;
@@ -22,6 +24,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20240503_165947_create_table_confirmed_account::Migration),
             Box::new(m20240503_165956_create_table_pending_account::Migration),
             Box::new(m20240503_170005_create_table_user_data::Migration),
+            Box::new(m20250525_112910_create_table_remind_assignee::Migration),
+            Box::new(m20250525_113749_create_table_remind::Migration),
         ]
     }
 }
