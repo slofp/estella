@@ -3,6 +3,8 @@ mod commands;
 mod configs;
 mod events;
 mod utils;
+mod voice;
+mod chat;
 
 use crate::configs::ConfigData;
 use crate::events::route::Router;
@@ -12,6 +14,9 @@ use sea_orm::Database;
 use serenity::all::ApplicationId;
 use serenity::prelude::GatewayIntents;
 use serenity::Client;
+use songbird::driver::DecodeMode;
+use songbird::SerenityInit;
+use voice::text2speak::init_voicevox;
 use std::fs;
 use std::path::Path;
 use std::sync::LazyLock;
@@ -56,6 +61,10 @@ async fn main() {
 		return;
 	}
 	let config = config.unwrap();
+
+	info!("Voicevox Initialize...");
+
+	init_voicevox().await;
 
 	info!("Database Connecting...");
 
@@ -163,8 +172,13 @@ fn init_logger(is_debug: bool) -> Result<(), fern::InitError> {
 
 async fn create_client(config: &ConfigData) -> Client {
 	let token = config.get_token();
+
+	// songbird の初期化を行う
+	let songbird_config = songbird::Config::default().decode_mode(DecodeMode::Decode);
+
 	Client::builder(token, GatewayIntents::all())
 		.event_handler(Router)
+		.register_songbird_from_config(songbird_config)
 		.application_id(ApplicationId::from(*config.get_bot_id()))
 		.await
 		.expect("Erred at client")

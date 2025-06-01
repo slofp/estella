@@ -2,6 +2,7 @@
 name = "estella"
 version = "1.1.0"
 edition = "2021"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -28,8 +29,14 @@ log = "0.4.14"
 num-traits = "0.2.14"
 serde = { version = "1.0.136", features = ["derive"] }
 serde_yaml = "0.9.34"
+serde_json = "1.0"
 sha3 = "0.10.0"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync"] }
+deepgram = "0.6.8"
+tokio-stream = "0.1.17"
+bytes = "1"
+tokio-util = "0.7.15"
+openai_dive = "1.2"
 
 entity.workspace = true
 sea-orm.workspace = true
@@ -52,9 +59,25 @@ features = [
     "rustls_backend",
     "unstable_discord_api",
     "collector",
-    "chrono"
+    "chrono",
+    "voice"
 ]
 version = "0.12"
+
+[dependencies.songbird]
+version = "0.5"
+features = ["builtin-queue", "receive"]
+
+[dependencies.symphonia]
+version = "0.5"
+features = ["wav"]
+
+[dependencies.uuid]
+version = "1.17.0"
+# Lets you generate random UUIDs
+features = [
+    "v4",
+]
 
 [profile.release]
 strip = true

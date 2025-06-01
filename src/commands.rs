@@ -1,10 +1,12 @@
 use crate::command_define::{BaseCommand, BuildCommandOption, CommonCommandType};
 use crate::commands::ping::PingCommand;
 use config::ConfigCommand;
+use disconnect::DisconnectCommand;
 use log::{debug, error};
 use serenity::all::{CommandDataOption, CommandDataOptionValue, CommandInteraction, CommandOptionType};
 use serenity::builder::CreateCommand;
 use serenity::client::Context;
+use talk::TalkCommand;
 use user::UserCommands;
 use version::VersionCommand;
 use std::convert::Into;
@@ -34,12 +36,16 @@ mod config;
 mod ping;
 mod user;
 mod version;
+mod talk;
+mod disconnect;
 
 static COMMANDS: LazyLock<Vec<CommonCommandType>> = LazyLock::new(|| vec![
 	convert_command!(PingCommand),
 	convert_command!(ConfigCommand),
 	convert_sub_command!(UserCommands),
 	convert_command!(VersionCommand),
+	convert_command!(TalkCommand),
+	convert_command!(DisconnectCommand),
 ]);
 
 async fn root_commands_route(ctx: Context, command: CommandInteraction) -> serenity::Result<()> {
