@@ -4,6 +4,8 @@ pub mod confirmed_account;
 pub mod guild_config;
 pub mod main_account;
 pub mod pending_account;
+pub mod remind;
+pub mod remind_assignee;
 pub mod sub_account;
 pub mod user_data;
 
@@ -24,3 +26,9 @@ pub type SubAccountBehavior = sub_account::Entity;
 
 pub type UserData = user_data::Model;
 pub type UserDataBehavior = user_data::Entity;
+
+pub type Remind = remind::Model;
+pub type RemindBehavior = remind::Entity;
+
+pub type RemindAssignee = remind_assignee::Model;
+pub type RemindAssigneeBehavior = remind_assignee::Entity;
