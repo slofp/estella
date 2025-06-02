@@ -146,6 +146,9 @@ async fn insert_sub(ctx: &Context, message: Message) {
 	let user_data = entity::UserData {
 		uid: insert_data.uid,
 		glacialeur: None,
+		call_name: None,
+		gender: None,
+		likability_level: None,
 	};
 	if let Err(error) = user_data.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);
@@ -202,6 +205,9 @@ async fn insert(ctx: &Context, message: Message) {
 	let user_data = entity::UserData {
 		uid: insert_data.uid,
 		glacialeur: Some(g_str),
+		call_name: None,
+		gender: None,
+		likability_level: None,
 	};
 	if let Err(error) = user_data.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);
