@@ -37,6 +37,7 @@ tokio-stream = "0.1.17"
 bytes = "1"
 tokio-util = "0.7.15"
 openai_dive = "1.2"
+futures = "0.3"
 
 entity.workspace = true
 sea-orm.workspace = true

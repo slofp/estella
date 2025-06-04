@@ -50,7 +50,6 @@ pub async fn execute(ctx: Context, message: Message) {
 		insert_sub(&ctx, message).await;
 	} else if message.content.starts_with("estella.chat_test") {
 		// estella.chat_test (msg)
-		println!("start test");
 		test_chat(&ctx, message).await;
 	}
 }
@@ -66,10 +65,10 @@ async fn test_chat(ctx: &Context, message: Message) {
 
 	let (data, id) = getchat_responce(
 		create_user_message(
-			message_vec[0],
-			50,
-			"しせる",
-			&crate::chat::param::Gender::Ladies,
+			message_vec[3..].join(" "),
+			message_vec[0].parse().expect("could not parse level"),
+			message_vec[1],
+			if message_vec[2] == "M" { entity::enums::Gender::Male } else { entity::enums::Gender::Ladies },
 			&chrono::Local::now()
 		),
 		prev_id
@@ -226,6 +225,7 @@ async fn guild_init(guild_id: u64) {
 		log_channel_id: None,
 		auth_role_id: None,
 		bot_role_id: None,
+		send_ai_chat_channel_id: None,
 	};
 	if let Err(error) = guild_config.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);

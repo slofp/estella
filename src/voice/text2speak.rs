@@ -17,6 +17,8 @@ pub(super) static VOICE_VOX_CLIENT: LazyLock<RwLock<VoiceVoxTtsClient>> = LazyLo
 pub(crate) async fn init_voicevox() {
 	let mut client = VOICE_VOX_CLIENT.write().await;
 	client.load_model(MODEL_PATH).await;
+
+	client.set_dict(vec![]).await;
 }
 
 pub(crate) fn create_tts_option() -> Option<TtsAudioOption> {

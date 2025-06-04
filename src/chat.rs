@@ -1,5 +1,6 @@
+use entity::enums::Gender;
 use openai_dive::v1::{api::Client, error::APIError, resources::{response::{request::{ContentInput, InputMessage, ResponseInput, ResponseInputItem, ResponseParametersBuilder}, response::{OutputContent, ResponseOutput, ResponseText, Role}, shared::{ResponseFormat, ResponseTool, UserLocationType, WebSearchUserLocation}}, shared::WebSearchContextSize}};
-use param::{Gender, ResponseData};
+use param::ResponseData;
 use prompt::SYSTEM_PROMPT;
 
 use crate::STATIC_COMPONENTS;
@@ -45,11 +46,7 @@ pub(crate) async fn getchat_responce(user_message: ResponseInputItem, prev_id: O
 		param.previous_response_id(prev_id);
 	}
 
-	println!("send api...");
-
 	let res = responses.create(param.build().unwrap()).await?;
-
-	println!("{:?}", res);
 
 	let id = res.id;
 	let res_output_last = res.output.last().unwrap();
@@ -69,7 +66,7 @@ pub(crate) async fn getchat_responce(user_message: ResponseInputItem, prev_id: O
 	}
 }
 
-pub(crate) fn create_user_message<S1: Into<String>, S2: Into<String>>(message: S1, level: u8, name: S2, gender: &Gender, time: &chrono::DateTime<chrono::Local>) -> ResponseInputItem {
+pub(crate) fn create_user_message<S1: Into<String>, S2: Into<String>>(message: S1, level: u32, name: S2, gender: Gender, time: &chrono::DateTime<chrono::Local>) -> ResponseInputItem {
 	let mut res = String::new();
 
 	res += &format!("好感度レベル: {}\n", level);
@@ -79,8 +76,6 @@ pub(crate) fn create_user_message<S1: Into<String>, S2: Into<String>>(message: S
 
 	res += "####\n";
 	res += &message.into();
-
-	println!("{}", res);
 
 	ResponseInputItem::Message(InputMessage {
 		content: ContentInput::Text(res),

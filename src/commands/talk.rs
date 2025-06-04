@@ -141,7 +141,7 @@ impl Command for TalkCommand {
 		let channel = self.get_user_connected_voice_channel(ctx, command).await?.id;
 		let guild = command.guild_id.unwrap();
 
-		if let Err(_) = connect_voice_channel(ctx, &guild, &channel).await {
+		if let Err(_) = connect_voice_channel(ctx, guild, channel).await {
 			self.send_error_connecting_voice_channel(ctx, command).await
 		} else {
 			self.send_connected_voice_channel(ctx, command).await

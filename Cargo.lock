@@ -1260,6 +1260,7 @@ dependencies = [
  "deepgram",
  "entity",
  "fern",
+ "futures",
  "log",
  "num-traits",
  "openai_dive",

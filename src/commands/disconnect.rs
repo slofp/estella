@@ -1,12 +1,12 @@
 use crate::command_define::{BaseCommand, Command};
 use crate::utils::color;
-use crate::voice::{connect_voice_channel, disconnect_voice_channel};
+use crate::voice::disconnect_voice_channel;
 use serenity::all::{
-	ChannelType, CommandDataOption, CommandInteraction, CreateEmbed, CreateInteractionResponse,
-	CreateInteractionResponseMessage, GuildChannel,
+	CommandDataOption, CommandInteraction, CreateEmbed, CreateInteractionResponse,
+	CreateInteractionResponseMessage,
 };
 use serenity::client::Context;
-use serenity::{async_trait, Error};
+use serenity::async_trait;
 
 pub struct DisconnectCommand;
 
@@ -81,7 +81,7 @@ impl Command for DisconnectCommand {
 		let command = &command;
 		let guild = command.guild_id.unwrap();
 
-		if let Err(msg) = disconnect_voice_channel(ctx, &guild).await {
+		if let Err(msg) = disconnect_voice_channel(ctx, guild).await {
 			self.send_error_disconnect_voice_channel(ctx, command, msg).await
 		} else {
 			self.send_disconnected_voice_channel(ctx, command).await
