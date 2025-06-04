@@ -12,6 +12,7 @@ pub struct Model {
 	pub log_channel_id: Option<u64>,
 	pub auth_role_id: Option<u64>,
 	pub bot_role_id: Option<u64>,
+	pub send_ai_chat_channel_id: Option<u64>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

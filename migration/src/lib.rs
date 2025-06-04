@@ -10,6 +10,7 @@ mod m20240503_170005_create_table_user_data;
 mod m20250525_112910_create_table_remind_assignee;
 mod m20250525_113749_create_table_remind;
 mod m20250601_164835_modify_user_data;
+mod m20250604_151741_modify_guild_config;
 mod tables;
 
 pub struct Migrator;
@@ -28,6 +29,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250525_112910_create_table_remind_assignee::Migration),
             Box::new(m20250525_113749_create_table_remind::Migration),
             Box::new(m20250601_164835_modify_user_data::Migration),
+            Box::new(m20250604_151741_modify_guild_config::Migration),
         ]
     }
 }

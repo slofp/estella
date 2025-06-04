@@ -11,6 +11,9 @@ pub enum GuildConfig {
 	LogChannelId,
 	AuthRoleId,
 	BotRoleId,
+
+	// 2025-06-05 added
+	SendAiChatChannelId,
 }
 
 #[derive(DeriveIden)]
