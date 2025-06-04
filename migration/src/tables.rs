@@ -11,6 +11,9 @@ pub enum GuildConfig {
 	LogChannelId,
 	AuthRoleId,
 	BotRoleId,
+
+	// 2025-06-05 added
+	SendAiChatChannelId,
 }
 
 #[derive(DeriveIden)]
@@ -77,4 +80,30 @@ pub enum UserData {
 	// Column
 	Uid,
 	Glacialeur,
+
+	// 2025-06-02 added
+	CallName,
+	Gender,
+	LikabilityLevel,
+}
+
+#[derive(DeriveIden)]
+pub enum Remind {
+	Table,
+
+	// Column
+	Id,
+	TaskName,
+	AuthorId,
+	AssigneesId,
+	RemindDate,
+}
+
+#[derive(DeriveIden)]
+pub enum RemindAssignee {
+	Table,
+
+	// Column
+	Id,
+	UserId,
 }

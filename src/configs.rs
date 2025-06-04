@@ -10,6 +10,9 @@ pub struct ConfigData {
 	db_username: String,
 	db_password: String,
 	db_database: String,
+
+	deepgram_token: String,
+	chatgpt_token: String,
 }
 
 impl ConfigData {
@@ -30,5 +33,13 @@ impl ConfigData {
 			"mysql://{}:{}@{}/{}",
 			self.db_username, self.db_password, self.db_url, self.db_database
 		)
+	}
+
+	pub fn get_deepgram_token(&self) -> &String {
+		&self.deepgram_token
+	}
+
+	pub fn get_chatgpt_token(&self) -> &String {
+		&self.chatgpt_token
 	}
 }

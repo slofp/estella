@@ -2,25 +2,26 @@
 
 use sea_orm::entity::prelude::*;
 
-use crate::enums::Gender;
-
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user_data")]
+#[sea_orm(table_name = "remind_assignee")]
 pub struct Model {
-	#[sea_orm(primary_key, auto_increment = false)]
-	pub uid: u64,
-	pub glacialeur: Option<String>,
-	pub call_name: Option<String>,
-	pub gender: Option<Gender>,
-	pub likability_level: Option<u32>,
+	#[sea_orm(primary_key)]
+	pub id: u32,
+	pub user_id: u64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
 	#[sea_orm(has_many = "super::remind::Entity")]
 	Remind,
-	#[sea_orm(has_many = "super::remind_assignee::Entity")]
-	RemindAssignee,
+	#[sea_orm(
+		belongs_to = "super::user_data::Entity",
+		from = "Column::UserId",
+		to = "super::user_data::Column::Uid",
+		on_update = "Cascade",
+		on_delete = "Cascade"
+	)]
+	UserData,
 }
 
 impl Related<super::remind::Entity> for Entity {
@@ -29,9 +30,9 @@ impl Related<super::remind::Entity> for Entity {
 	}
 }
 
-impl Related<super::remind_assignee::Entity> for Entity {
+impl Related<super::user_data::Entity> for Entity {
 	fn to() -> RelationDef {
-		Relation::RemindAssignee.def()
+		Relation::UserData.def()
 	}
 }
 

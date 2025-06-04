@@ -1,3 +1,4 @@
+use crate::chat::{create_user_message, getchat_responce};
 use crate::utils::convert::format_discord_username;
 use crate::utils::glacialeur;
 use crate::{commands, exit, STATIC_COMPONENTS};
@@ -47,7 +48,38 @@ pub async fn execute(ctx: Context, message: Message) {
 	} else if message.content.starts_with("estella.sub_insert") {
 		// estella.sub_insert (uid) (name) (main_uid)
 		insert_sub(&ctx, message).await;
+	} else if message.content.starts_with("estella.chat_test") {
+		// estella.chat_test (msg)
+		test_chat(&ctx, message).await;
 	}
+}
+
+async fn test_chat(ctx: &Context, message: Message) {
+	let message_rep = message.content.replace("estella.chat_test", "");
+	let message_split = message_rep.trim().split(' ');
+	let message_vec: Vec<&str> = message_split.collect::<Vec<&str>>();
+
+	let comp_lock = STATIC_COMPONENTS.lock().await;
+	let prev_id = comp_lock.get_prev_id().map(|v| v.clone());
+	std::mem::drop(comp_lock);
+
+	let (data, id) = getchat_responce(
+		create_user_message(
+			message_vec[3..].join(" "),
+			message_vec[0].parse().expect("could not parse level"),
+			message_vec[1],
+			if message_vec[2] == "M" { entity::enums::Gender::Male } else { entity::enums::Gender::Ladies },
+			&chrono::Local::now()
+		),
+		prev_id
+	).await.unwrap();
+
+	let mut comp_lock = STATIC_COMPONENTS.lock().await;
+	comp_lock.set_prev_id(id);
+	std::mem::drop(comp_lock);
+
+	message.channel_id
+		.send_message(ctx, CreateMessage::new().content(data.message)).await.unwrap();
 }
 
 async fn message_log(message: &Message, cache: impl CacheHttp) {
@@ -113,6 +145,9 @@ async fn insert_sub(ctx: &Context, message: Message) {
 	let user_data = entity::UserData {
 		uid: insert_data.uid,
 		glacialeur: None,
+		call_name: None,
+		gender: None,
+		likability_level: None,
 	};
 	if let Err(error) = user_data.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);
@@ -169,6 +204,9 @@ async fn insert(ctx: &Context, message: Message) {
 	let user_data = entity::UserData {
 		uid: insert_data.uid,
 		glacialeur: Some(g_str),
+		call_name: None,
+		gender: None,
+		likability_level: None,
 	};
 	if let Err(error) = user_data.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);
@@ -187,6 +225,7 @@ async fn guild_init(guild_id: u64) {
 		log_channel_id: None,
 		auth_role_id: None,
 		bot_role_id: None,
+		send_ai_chat_channel_id: None,
 	};
 	if let Err(error) = guild_config.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);

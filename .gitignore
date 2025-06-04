@@ -2,3 +2,7 @@
 /configs/config.yaml
 /logs
 .env
+
+voicevox_core.dll
+/voicevox_core
+*.vvproj
