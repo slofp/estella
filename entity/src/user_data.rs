@@ -12,7 +12,7 @@ pub struct Model {
 	pub glacialeur: Option<String>,
 	pub call_name: Option<String>,
 	pub gender: Option<Gender>,
-	pub likability_level: Option<u32>,
+	pub chat_message_count: Option<u32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -21,6 +21,8 @@ pub enum Relation {
 	Remind,
 	#[sea_orm(has_many = "super::remind_assignee::Entity")]
 	RemindAssignee,
+	#[sea_orm(has_many = "super::talk_history::Entity")]
+	TalkHistory,
 }
 
 impl Related<super::remind::Entity> for Entity {
@@ -32,6 +34,12 @@ impl Related<super::remind::Entity> for Entity {
 impl Related<super::remind_assignee::Entity> for Entity {
 	fn to() -> RelationDef {
 		Relation::RemindAssignee.def()
+	}
+}
+
+impl Related<super::talk_history::Entity> for Entity {
+	fn to() -> RelationDef {
+		Relation::TalkHistory.def()
 	}
 }
 
