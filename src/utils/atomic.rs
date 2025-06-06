@@ -56,10 +56,9 @@ impl TimeoutAtomicBool {
 
 impl Drop for TimeoutAtomicBool {
 	fn drop(&mut self) {
-		self.cancel_token.cancel();
-
 		tokio::task::block_in_place(move || {
 			tokio::runtime::Handle::current().block_on(async {
+				self.cancel_token.cancel();
 				self.task.take().unwrap().await.unwrap();
 			});
 		});
