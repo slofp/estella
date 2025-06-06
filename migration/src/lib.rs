@@ -11,6 +11,8 @@ mod m20250525_112910_create_table_remind_assignee;
 mod m20250525_113749_create_table_remind;
 mod m20250601_164835_modify_user_data;
 mod m20250604_151741_modify_guild_config;
+mod m20250606_155740_modify_level_to_message_counter;
+mod m20250606_160312_add_talk_history;
 mod tables;
 
 pub struct Migrator;
@@ -30,6 +32,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20250525_113749_create_table_remind::Migration),
             Box::new(m20250601_164835_modify_user_data::Migration),
             Box::new(m20250604_151741_modify_guild_config::Migration),
+            Box::new(m20250606_155740_modify_level_to_message_counter::Migration),
+            Box::new(m20250606_160312_add_talk_history::Migration),
         ]
     }
 }
