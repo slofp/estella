@@ -84,7 +84,10 @@ pub enum UserData {
 	// 2025-06-02 added
 	CallName,
 	Gender,
-	LikabilityLevel,
+	LikabilityLevel, // Removed
+
+	// 2025-06-07 added
+	ChatMessageCount,
 }
 
 #[derive(DeriveIden)]
@@ -106,4 +109,17 @@ pub enum RemindAssignee {
 	// Column
 	Id,
 	UserId,
+}
+
+#[derive(DeriveIden)]
+pub enum TalkHistory {
+	Table,
+
+	// Column
+	Id,
+	UserId,
+	ChatId,
+	InputText,
+	OutputText,
+	TalkDate,
 }
