@@ -29,7 +29,7 @@ pub(crate) async fn connect_voice_channel(
 		let token = comp_lock.get_config().get_deepgram_token().clone();
 		std::mem::drop(comp_lock);
 
-		let mut evt_receiver = Receiver::new(
+		let evt_receiver = Receiver::new(
 			Arc::downgrade(&manager),
 			target_guild_id,
 			Arc::clone(&ctx.http),
