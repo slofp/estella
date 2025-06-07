@@ -39,7 +39,7 @@ impl<E> Speak2TextStream<E> where E: Error + Send + Sync + 'static {
 			.channels(2)
 			.keep_alive()
 			.no_delay(true)
-			.endpointing(Endpointing::CustomDurationMs(20))
+			.endpointing(Endpointing::CustomDurationMs(40))
 			.stream(ReceiverStream::new(rx))
 			.await
 			.unwrap();
@@ -95,6 +95,8 @@ impl<E> Speak2TextStream<E> where E: Error + Send + Sync + 'static {
 	}
 
 	fn convert_responce(res: StreamResponse) -> String {
+		log::debug!("speak responce data: {:?}", res);
+
 		if let StreamResponse::TranscriptResponse {
 			channel,
 			type_field: _,
@@ -111,7 +113,7 @@ impl<E> Speak2TextStream<E> where E: Error + Send + Sync + 'static {
 				text += &alt.transcript;
 			}
 
-			text
+			text.split_ascii_whitespace().collect::<Vec<_>>().join("")
 		} else {
 			log::debug!("other res: {:?}", res);
 			String::new()

@@ -8,6 +8,7 @@ pub mod remind;
 pub mod remind_assignee;
 pub mod sub_account;
 pub mod user_data;
+pub mod talk_history;
 
 pub type ConfirmedAccount = confirmed_account::Model;
 pub type ConfirmedAccountBehavior = confirmed_account::Entity;
@@ -32,3 +33,6 @@ pub type RemindBehavior = remind::Entity;
 
 pub type RemindAssignee = remind_assignee::Model;
 pub type RemindAssigneeBehavior = remind_assignee::Entity;
+
+pub type TalkHistory = talk_history::Model;
+pub type TalkHistoryBehavior = talk_history::Entity;

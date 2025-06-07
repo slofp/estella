@@ -3,41 +3,30 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "remind")]
+#[sea_orm(table_name = "talk_history")]
 pub struct Model {
 	#[sea_orm(primary_key, auto_increment = true)]
 	pub id: u32,
+	pub user_id: u64,
 	#[sea_orm(column_type = "Text")]
-	pub task_name: String,
-	pub author_id: u64,
-	pub assignees_id: Option<u32>,
-	pub remind_date: ChronoDateTimeUtc,
+	pub chat_id: String,
+	#[sea_orm(column_type = "Text")]
+	pub input_text: String,
+	#[sea_orm(column_type = "Text")]
+	pub output_text: String,
+	pub talk_date: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
 	#[sea_orm(
-		belongs_to = "super::remind_assignee::Entity",
-		from = "Column::AssigneesId",
-		to = "super::remind_assignee::Column::Id",
-		on_update = "Cascade",
-		on_delete = "Cascade"
-	)]
-	RemindAssignee,
-	#[sea_orm(
 		belongs_to = "super::user_data::Entity",
-		from = "Column::AuthorId",
+		from = "Column::UserId",
 		to = "super::user_data::Column::Uid",
 		on_update = "Cascade",
 		on_delete = "Cascade"
 	)]
 	UserData,
-}
-
-impl Related<super::remind_assignee::Entity> for Entity {
-	fn to() -> RelationDef {
-		Relation::RemindAssignee.def()
-	}
 }
 
 impl Related<super::user_data::Entity> for Entity {

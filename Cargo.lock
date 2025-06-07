@@ -1265,6 +1265,7 @@ dependencies = [
  "num-traits",
  "openai_dive",
  "openssl",
+ "rand 0.9.1",
  "sea-orm",
  "serde",
  "serde_json",

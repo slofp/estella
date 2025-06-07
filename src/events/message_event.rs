@@ -64,9 +64,11 @@ async fn test_chat(ctx: &Context, message: Message) {
 	std::mem::drop(comp_lock);
 
 	let (data, id) = getchat_responce(
+		message.author.id.get(),
 		create_user_message(
 			message_vec[3..].join(" "),
 			message_vec[0].parse().expect("could not parse level"),
+			message.author.id.get(),
 			message_vec[1],
 			if message_vec[2] == "M" { entity::enums::Gender::Male } else { entity::enums::Gender::Ladies },
 			&chrono::Local::now()
@@ -147,7 +149,7 @@ async fn insert_sub(ctx: &Context, message: Message) {
 		glacialeur: None,
 		call_name: None,
 		gender: None,
-		likability_level: None,
+		chat_message_count: None,
 	};
 	if let Err(error) = user_data.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);
@@ -206,7 +208,7 @@ async fn insert(ctx: &Context, message: Message) {
 		glacialeur: Some(g_str),
 		call_name: None,
 		gender: None,
-		likability_level: None,
+		chat_message_count: None,
 	};
 	if let Err(error) = user_data.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);

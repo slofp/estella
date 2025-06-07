@@ -146,7 +146,7 @@ pub async fn execute(ctx: Context, guild_id: GuildId, new_member: Member) {
 		glacialeur: g_str,
 		call_name: None,
 		gender: None,
-		likability_level: None,
+		chat_message_count: None,
 	};
 	if let Err(error) = user_data.into_active_model().insert(mysql_client).await {
 		error!("DB Error: {:?}", error);

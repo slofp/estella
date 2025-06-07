@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, fmt::Display, sync::{atomic::{AtomicBool, Ordering}, Arc, Weak}};
+use std::{collections::HashMap, error::Error, fmt::Display, sync::{Arc, Weak}};
 
 use bytes::{BufMut, BytesMut};
 use deepgram::Deepgram;
