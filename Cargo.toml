@@ -38,6 +38,7 @@ bytes = "1"
 tokio-util = "0.7.15"
 openai_dive = "1.2"
 futures = "0.3"
+rand = "0.9.1"
 
 entity.workspace = true
 sea-orm.workspace = true
