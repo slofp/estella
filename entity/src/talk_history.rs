@@ -5,7 +5,7 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "talk_history")]
 pub struct Model {
-	#[sea_orm(primary_key)]
+	#[sea_orm(primary_key, auto_increment = true)]
 	pub id: u32,
 	pub user_id: u64,
 	#[sea_orm(column_type = "Text")]
