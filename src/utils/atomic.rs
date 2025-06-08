@@ -29,7 +29,7 @@ impl TimeoutAtomicBool {
 					Some(_) = rx.recv() => {
 						continue;
 					}
-					_ = tokio::time::sleep(std::time::Duration::from_secs(3)) => {
+					_ = tokio::time::sleep(std::time::Duration::from_millis(1500)) => {
 						in_thread_value.store(false, Ordering::Relaxed);
 					}
 				}
