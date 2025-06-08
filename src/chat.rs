@@ -60,12 +60,13 @@ pub(crate) async fn getchat_responce(user_id: u64, user_message: ResponseInputIt
 	}
 
 	let res = responses.create(param.build().unwrap()).await?;
+	log::debug!("{:?}", res);
 
 	let id = res.id;
 	let res_output_last = res.output.last().unwrap();
 	if let ResponseOutput::Message(message) = res_output_last {
 		let content = message.content.first().unwrap();
-		if let OutputContent::Text { text, annotations } = content {
+		if let OutputContent::Text { text, annotations: _ } = content {
 			// DBに会話内容を保存
 			let th = talk_history::ActiveModel {
 				chat_id: Set(id.clone()),
@@ -97,11 +98,11 @@ pub(crate) async fn getchat_responce(user_id: u64, user_message: ResponseInputIt
 	}
 }
 
-pub(crate) fn create_user_message<S1: Into<String>, S2: Into<String>>(message: S1, level: u32, userId: u64, name: S2, gender: Gender, time: &chrono::DateTime<chrono::Local>) -> ResponseInputItem {
+pub(crate) fn create_user_message<S1: Into<String>, S2: Into<String>>(message: S1, level: u32, user_id: u64, name: S2, gender: Gender, time: &chrono::DateTime<chrono::Local>) -> ResponseInputItem {
 	let mut res = String::new();
 
 	res += &format!("好感度レベル: {}\n", level);
-	res += &format!("ID: {}\n", userId);
+	res += &format!("ID: {}\n", user_id);
 	res += &format!("名前: {}\n", name.into());
 	res += &format!("性別: {}\n", gender.to_string());
 	res += &format!("時刻: {}\n", time.format("%H:%M"));
