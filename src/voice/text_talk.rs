@@ -35,7 +35,7 @@ pub(crate) struct TextTalk {
 	speaking_result_sender: Sender<(UserId, String)>,
 	user_speaking_state: Arc<RwLock<HashMap<UserId, TimeoutAtomicBool>>>,
 	talk_execute_state: AtomicBool,
-	target_talk_user: Mutex<Option<UserId>>,
+	target_talk_user: TimeoutUserId,
 	target_guild_id: GuildId,
 	prev_message_id: Mutex<Option<String>>,
 }
@@ -54,7 +54,7 @@ impl TextTalk {
 			speaking_result_sender: wx,
 			user_speaking_state,
 			talk_execute_state: AtomicBool::new(false),
-			target_talk_user: Mutex::new(None),
+			target_talk_user: TimeoutUserId::new(),
 			target_guild_id,
 			prev_message_id: Mutex::new(None),
 		});
@@ -145,7 +145,7 @@ impl TextTalk {
 		std::mem::drop(text_queue_lock);
 
 		let execute_state= self.talk_execute_state.load(Ordering::Acquire);
-		let none_execute_target = self.target_talk_user.lock().await.is_none();
+		let none_execute_target = self.target_talk_user.get().await.is_none();
 
 		let random_polling = tokio::task::spawn_blocking(|| {
 			// 確率によるポーリング (全体的な)
@@ -180,7 +180,7 @@ impl TextTalk {
 				}
 			}
 
-			let execute_target = self.target_talk_user.lock().await.map_or(false, |u| u == user_id);
+			let execute_target = self.target_talk_user.get().await.map_or(false, |u| u == user_id);
 			// 実行中で、聞き取りターゲットじゃない人は無視 (聞いていない想定)
 			if execute_state && !execute_target {
 				continue;
@@ -214,12 +214,11 @@ impl TextTalk {
 				self.after_action(&data.actions).await;
 				// 空白で終わる場合は、相槌だけで終わっているということなので、全体の受付に戻る
 				if data.message == "" {
-					let mut user = self.target_talk_user.lock().await;
-					*user = None;
+					self.target_talk_user.set_option(None).await;
 				}
 
 				// もし、ターゲットがないなら、受付を再開する
-				if self.target_talk_user.lock().await.is_none() {
+				if self.target_talk_user.get().await.is_none() {
 					self.talk_execute_state.store(false, Ordering::Release);
 				}
 				continue;
@@ -273,8 +272,7 @@ impl TextTalk {
 
 			// 一人だけ もしくは マルチ時に特定の文字を検知したのであれば、ターゲット
 			if !is_multi_users || specified_polling {
-				let mut user = self.target_talk_user.lock().await;
-				*user = Some(user_id);
+				self.target_talk_user.set(user_id).await;
 			}
 		}
 
@@ -299,9 +297,8 @@ impl TextTalk {
 					lock.insert(user_id, queue_text);
 				}
 			} else {
-				// 誰か一人でも喋ってない人が居るならば、
-				// 確実にその人のフォーカスを合うようになるはずであるため
 				// 他の人の会話を一旦遮った状態の全インプットデータを使用する
+				// 1人しか喋ってないなら行ける
 
 				let user_messages: Vec<_> = futures::stream::iter(user_text.into_iter())
 					.filter_map(|(i, t)| async move {
@@ -309,7 +306,7 @@ impl TextTalk {
 						if t.len() == 0 {
 							None
 						} else {
-							Some(self.create_single_user_message(t, i).await)
+							self.create_single_user_message(t, i).await
 						}
 					})
 					.collect().await;
@@ -335,14 +332,18 @@ impl TextTalk {
 				self.after_action(&data.actions).await;
 				// 空白で終わる場合は、相槌だけで終わっているということなので、全体の受付に戻る
 				if data.message == "" {
-					let mut user = self.target_talk_user.lock().await;
-					*user = None;
+					self.target_talk_user.set_option(None).await;
 				}
 
 				// もし、ターゲットがないなら、受付を再開する
-				if self.target_talk_user.lock().await.is_none() {
+				if self.target_talk_user.get().await.is_none() {
 					self.talk_execute_state.store(false, Ordering::Release);
 				}
+
+				// 最後に、処理の間のキューを全部消す(ここらへんも考慮に出来たら最高なんだけど)
+				let mut text_queue_lock = self.text_queue.lock().await;
+				text_queue_lock.drain();
+				std::mem::drop(text_queue_lock);
 			}
 		}
 	}
@@ -379,13 +380,11 @@ impl TextTalk {
 				if let Some(serde_json::Value::Number(v)) = action.params.get("user_id") {
 					let change_user_id = v.as_u64().map(|v| UserId(v));
 
-					let mut user = self.target_talk_user.lock().await;
-					*user = change_user_id;
+					self.target_talk_user.set_option(change_user_id).await;
 				}
 			} else if action.name == "end_topic" {
 				// 話題の終了、入力受付に戻る
-				let mut user = self.target_talk_user.lock().await;
-				*user = None;
+				self.target_talk_user.set_option(None).await;
 				self.talk_execute_state.store(false, Ordering::Release);
 			}
 		}
@@ -395,7 +394,9 @@ impl TextTalk {
 		let client = VOICE_VOX_CLIENT.read().await;
 
 		// ～とかーは1こだと短すぎるので、2こに増やしておく
-		let text = text.replace("ー", "ーー").replace("～", "～～");
+		// 単語系がおかしくなったので一旦止める
+		// let text = text.replace("ー", "ーー").replace("～", "～～");
+		let text = text.clone();
 
 		let wav = client.tts(
 			text,
@@ -415,7 +416,7 @@ impl TextTalk {
 		}
 	}
 
-	async fn create_single_user_message(&self, text: &str, user_id: UserId) -> (ResponseInputItem, UserData, u32) {
+	async fn create_single_user_message(&self, text: &str, user_id: UserId) -> Option<(ResponseInputItem, UserData, u32)> {
 		let user_data = self.get_user_data(user_id).await;
 		if user_data.is_none() {
 			log::error!("UserData is not found.");
@@ -423,10 +424,9 @@ impl TextTalk {
 		}
 		let user_data = user_data.unwrap();
 
-		// TODO: 無い場合、聞く？
 		if user_data.call_name.is_none() || user_data.gender.is_none() || user_data.chat_message_count.is_none() {
 			log::error!("user profile is none");
-			unimplemented!();
+			return None;
 		}
 
 		let user_message_count = user_data.chat_message_count.unwrap_or_default();
@@ -439,13 +439,11 @@ impl TextTalk {
 			&chrono::Local::now()
 		);
 
-		(user_message, user_data, user_message_count)
+		Some((user_message, user_data, user_message_count))
 	}
 
-	async fn create_target_user_message(&self, text: &str) -> (ResponseInputItem, UserData, u32) {
-		let user_id_lock = self.target_talk_user.lock().await;
-		let user_id = user_id_lock.unwrap();
-		std::mem::drop(user_id_lock);
+	async fn create_target_user_message(&self, text: &str) -> Option<(ResponseInputItem, UserData, u32)> {
+		let user_id = self.target_talk_user.get().await.unwrap();
 
 		self.create_single_user_message(text, user_id).await
 	}
@@ -453,12 +451,19 @@ impl TextTalk {
 	async fn send_ai_answer_get_for_target(&self, text: &str) -> ResponseData {
 		let prev_id = self.prev_message_id.lock().await.as_ref().map(|v| v.clone());
 
-		let (user_message, user_data, user_message_count) = self.create_target_user_message(text).await;
+		let message_res = self.create_target_user_message(text).await;
+		if message_res.is_none() {
+			return ResponseData {
+				message: "ごめんね、あなたが誰なのかわからなかったからちゃんとした返事が出来なかったの。設定してもらってもいいかな？".to_owned(),
+				actions: vec![]
+			};
+		}
+		let (user_message, user_data, user_message_count) = message_res.unwrap();
 		let (data, id) = getchat_responce(
 			user_data.uid,
 			user_message,
 			prev_id
-		).await.unwrap();
+		).await.inspect_err(|e| log::error!("{:?}", e)).unwrap();
 
 		// 前回の会話idを保持
 		let mut prev_lock = self.prev_message_id.lock().await;
@@ -486,7 +491,7 @@ impl TextTalk {
 			users.first().unwrap().1.uid,
 			message,
 			prev_id
-		).await.unwrap();
+		).await.inspect_err(|e| log::error!("{:?}", e)).unwrap();
 
 		// 前回の会話idを保持
 		let mut prev_lock = self.prev_message_id.lock().await;
@@ -578,6 +583,9 @@ impl TrackHandleWaiter {
 					Some(_) = receiver.recv() => {
 						break;
 					}
+					_ = tokio::time::sleep(std::time::Duration::from_secs(60)) => {
+						break;
+					}
 				}
 			}
 		});
@@ -605,5 +613,73 @@ impl EventHandler for TrackHandleWaiter {
 		};
 
 		None
+	}
+}
+
+struct TimeoutUserId {
+	value: Arc<Mutex<Option<UserId>>>,
+	cancel_token: CancellationToken,
+	task: Option<JoinHandle<()>>,
+	timeout_reset_signal: Sender<()>,
+}
+
+impl TimeoutUserId {
+	fn new() -> Self {
+		let cancel_token = CancellationToken::new();
+		let value = Arc::new(Mutex::new(None));
+
+		let in_thread_token = cancel_token.clone();
+		let in_thread_value = Arc::clone(&value);
+
+		let (wx, mut rx) = tokio::sync::mpsc::channel::<()>(1);
+
+		let task = tokio::spawn(async move {
+			loop {
+				tokio::select! {
+					_ = in_thread_token.cancelled() => {
+						break;
+					}
+					Some(_) = rx.recv() => {
+						continue;
+					}
+					_ = tokio::time::sleep(std::time::Duration::from_secs(60)) => {
+						let mut lock = in_thread_value.lock().await;
+						*lock = None;
+					}
+				}
+			}
+		});
+
+		Self {
+			cancel_token,
+			value,
+			task: Some(task),
+			timeout_reset_signal: wx,
+		}
+	}
+
+	async fn set(&self, value: UserId) {
+		self.set_option(Some(value)).await;
+	}
+
+	async fn set_option(&self, value: Option<UserId>) {
+		let mut lock = self.value.lock().await;
+		*lock = value;
+		self.timeout_reset_signal.send(()).await.unwrap();
+	}
+
+	async fn get(&self) -> Option<UserId> {
+		*self.value.lock().await
+	}
+}
+
+impl Drop for TimeoutUserId {
+	fn drop(&mut self) {
+		tokio::task::block_in_place(move || {
+			tokio::runtime::Handle::current().block_on(async {
+				self.cancel_token.cancel();
+				self.task.take().unwrap().await.unwrap();
+			});
+		});
 	}
 }
