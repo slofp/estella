@@ -1,3 +1,4 @@
+use crate::chat::message_chat::chat_for_message;
 use crate::chat::{create_user_message, getchat_responce};
 use crate::utils::convert::format_discord_username;
 use crate::utils::glacialeur;
@@ -21,40 +22,41 @@ pub async fn execute(ctx: Context, message: Message) {
 
 	let lsc = STATIC_COMPONENTS.lock().await;
 	let config = lsc.get_config();
-	if message.author.id.get() != *config.get_owner_id()
-	/*owner userid*/
-	{
-		return;
-	}
+	let is_owner = message.author.id.get() == *config.get_owner_id();
 	std::mem::drop(lsc);
+	if is_owner /*owner userid*/ {
+		if message.content == "estella.logout" {
+			info!("logging out...");
+			exit(true).await;
+		} else if message.content.starts_with("estella.test") {
+			test().await;
+		} else if message.content.starts_with("estella.rep") {
+			ping(&ctx, &message).await;
+		} else if message.content.starts_with("estella.create") {
+			create(&message, &ctx.http).await;
+		} else if message.content.starts_with("estella.delete") {
+			// estella.delete (command_id)
+			delete(&message, &ctx.http).await;
+		} else if message.content.starts_with("estella.g_init") {
+			guild_init(message.guild_id.unwrap().get()).await;
+		} else if message.content.starts_with("estella.insert") {
+			// estella.insert (uid) (name) (version) (is_sc) (is_leave)
+			insert(&ctx, &message).await;
+		} else if message.content.starts_with("estella.sub_insert") {
+			// estella.sub_insert (uid) (name) (main_uid)
+			insert_sub(&ctx, &message).await;
+		} else if message.content.starts_with("estella.chat_test") {
+			// estella.chat_test (msg)
+			test_chat(&ctx, &message).await;
+		}
+	}
 
-	if message.content == "estella.logout" {
-		info!("logging out...");
-		exit(true).await;
-	} else if message.content.starts_with("estella.test") {
-		test().await;
-	} else if message.content.starts_with("estella.rep") {
-		ping(&ctx, message).await;
-	} else if message.content.starts_with("estella.create") {
-		create(message, &ctx.http).await;
-	} else if message.content.starts_with("estella.delete") {
-		// estella.delete (command_id)
-		delete(message, &ctx.http).await;
-	} else if message.content.starts_with("estella.g_init") {
-		guild_init(message.guild_id.unwrap().get()).await;
-	} else if message.content.starts_with("estella.insert") {
-		// estella.insert (uid) (name) (version) (is_sc) (is_leave)
-		insert(&ctx, message).await;
-	} else if message.content.starts_with("estella.sub_insert") {
-		// estella.sub_insert (uid) (name) (main_uid)
-		insert_sub(&ctx, message).await;
-	} else if message.content.starts_with("estella.chat_test") {
-		// estella.chat_test (msg)
-		test_chat(&ctx, message).await;
+	if !message.author.bot {
+		chat_for_message(&ctx, message).await;
 	}
 }
 
-async fn test_chat(ctx: &Context, message: Message) {
+async fn test_chat(ctx: &Context, message: &Message) {
 	let message_rep = message.content.replace("estella.chat_test", "");
 	let message_split = message_rep.trim().split(' ');
 	let message_vec: Vec<&str> = message_split.collect::<Vec<&str>>();
@@ -74,7 +76,7 @@ async fn test_chat(ctx: &Context, message: Message) {
 			&chrono::Local::now()
 		),
 		prev_id
-	).await.unwrap();
+	).await.inspect_err(|e| log::error!("{:?}", e)).unwrap();
 
 	let mut comp_lock = STATIC_COMPONENTS.lock().await;
 	comp_lock.set_prev_id(id);
@@ -103,7 +105,7 @@ async fn message_log(message: &Message, cache: impl CacheHttp) {
 	);
 }
 
-async fn insert_sub(ctx: &Context, message: Message) {
+async fn insert_sub(ctx: &Context, message: &Message) {
 	let message_rep = message.content.replace("estella.sub_insert", "");
 	let message_split = message_rep.trim().split(' ');
 	let message_vec: Vec<&str> = message_split.collect::<Vec<&str>>();
@@ -157,7 +159,7 @@ async fn insert_sub(ctx: &Context, message: Message) {
 	std::mem::drop(lsc);
 }
 
-async fn insert(ctx: &Context, message: Message) {
+async fn insert(ctx: &Context, message: &Message) {
 	let message_rep = message.content.replace("estella.insert", "");
 	let message_split = message_rep.trim().split(' ');
 	let message_vec: Vec<&str> = message_split.collect::<Vec<&str>>();
@@ -253,7 +255,7 @@ async fn test() {
 	}
 }
 
-async fn ping(ctx: &Context, message: Message) {
+async fn ping(ctx: &Context, message: &Message) {
 	match message.reply_ping(ctx, "Wait pls...").await {
 		Ok(mut rep_message) => {
 			let rep_time = rep_message.timestamp.timestamp_subsec_millis();
@@ -272,7 +274,7 @@ async fn ping(ctx: &Context, message: Message) {
 	}
 }
 
-async fn create(message: Message, http: &Arc<Http>) {
+async fn create(message: &Message, http: &Arc<Http>) {
 	match create_command(message.guild_id.unwrap(), http).await {
 		Ok(command) => {
 			if let Err(error) = message
@@ -314,7 +316,7 @@ async fn create_command(guild: GuildId, http: &Arc<Http>) -> Result<CommandId, s
 	};
 }
 
-async fn delete(message: Message, http: &Arc<Http>) {
+async fn delete(message: &Message, http: &Arc<Http>) {
 	let rep_message = message.content.replace("estella.delete", "").replace(" ", "");
 	if let Err(error) = message
 		.channel_id
