@@ -10,6 +10,7 @@ use crate::STATIC_COMPONENTS;
 
 mod prompt;
 pub(crate) mod param;
+pub(crate) mod message_chat;
 
 fn create_param() -> ResponseParametersBuilder {
 	let mut param = ResponseParametersBuilder::default();
