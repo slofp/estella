@@ -103,9 +103,9 @@ pub(crate) async fn chat_for_message(ctx: &Context, message: Message) {
 	};
 
 	typing.stop();
-	if is_mentioned_you {
+	if res_text.len() != 0 && is_mentioned_you {
 		message.reply_ping(ctx, res_text).await.unwrap();
-	} else {
+	} else if res_text.len() != 0 {
 		message.reply(ctx, res_text).await.unwrap();
 	}
 
